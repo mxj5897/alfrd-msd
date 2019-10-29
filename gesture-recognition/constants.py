@@ -17,7 +17,9 @@ REMOTE_SERVER = False
 SENSOR_TERMINAL = False
 COMPUTE_TERMINAL = False
 # Pose prediction constants
-POSE_MODEL_NAME = "moile_thin"
+POSE_MODEL_NAME = "tf_openpose/mobilenet_thin"
 POSE_RESIZE_OPTION = "432x368"
+RESIZE_OUT_OPTION = 1.0
 # Gesture Classification constants
 QUEUE_MAX_SIZE = 50
+

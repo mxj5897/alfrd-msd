@@ -3,85 +3,57 @@
 # Class for performing pose predicition in an image
 #
 ########################################################################################################################
-
 import argparse
-import logging
 import time
 
 import cv2
 import numpy as np
 
-from tf_pose.estimator import TfPoseEstimator
-from tf_pose.networks import get_graph_path, model_wh
+" tf-openpose/tf_pose/"
+import logging
+import constants
+from tf_openpose.tf_pose.estimator import TfPoseEstimator
+from tf_openpose.tf_pose.networks import get_graph_path, model_wh
 
-logger = logging.getLogger('TfPoseEstimator-WebCam')
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+
+pose_logger = logging.getLogger(__name__)
+pose_logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('gestureRecognition.log')
+file_handler.setFormatter(formatter)
+
+pose_logger.addHandler(file_handler)
 
 
 class Poses():
-    fps_time = 0
-    model_name = "mobilenet_thin"
-    resize_option="432x368"
+    w,h = None, None
 
-    def str2bool(self,v):
-        return v.lower() in ("yes", "true", "t", "1")
+    def get_model(self):
+        try:
+            self.w,self.h = model_wh(constants.POSE_RESIZE_OPTION)
 
-    def get_pose_points(self):
-        print("Hello WOrld")
+            if self.w > 0 and self.h > 0:
+                model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME), target_size=(w, h), trt_bool=False)
+            else:
+                model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME), target_size=(432, 368), trt_bool=False)
 
-    def plot_pose(self):
-        print("Hello World")
+            return model
+        except:
+            pose_logger.fatal("Could not find pose estimation model")
+            return None
 
-def getPoints()
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='tf-pose-estimation realtime webcam')
-    parser.add_argument('--camera', type=int, default=0)
+    def get_points(self, model, image):
+        try:
+            return model.inference(image, resize_to_default=(self.w > 0 and self.h > 0), upsample_size=constants.RESIZE_OUT_OPTION)
+        except:
+            pose_logger.warning("Error finding pose points")
+            return None
 
-    parser.add_argument('--resize', type=str, default='0x0',
-                        help='if provided, resize images before they are processed. default=0x0, Recommends : 432x368 or 656x368 or 1312x736 ')
-    parser.add_argument('--resize-out-ratio', type=float, default=4.0,
-                        help='if provided, resize heatmaps before they are post-processed. default=1.0')
-
-    parser.add_argument('--model', type=str, default='mobilenet_thin',
-                        help='cmu / mobilenet_thin / mobilenet_v2_large / mobilenet_v2_small')
-    parser.add_argument('--show-process', type=bool, default=False,
-                        help='for debug purpose, if enabled, speed for inference is dropped.')
-
-    parser.add_argument('--tensorrt', type=str, default="False",
-                        help='for tensorrt process.')
-    args = parser.parse_args()
-
-    logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))
-    w, h = model_wh(args.resize)
-    if w > 0 and h > 0:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h), trt_bool=str2bool(args.tensorrt))
-    else:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368), trt_bool=str2bool(args.tensorrt))
-    logger.debug('cam read+')
-    cam = cv2.VideoCapture(args.camera)
-    ret_val, image = cam.read()
-    logger.info('cam image=%dx%d' % (image.shape[1], image.shape[0]))
-
-    while True:
-        ret_val, image = cam.read()
-
-        humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=args.resize_out_ratio)
-
-        image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
-
-        cv2.putText(image,
-                    "FPS: %f" % (1.0 / (time.time() - fps_time)),
-                    (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                    (0, 255, 0), 2)
-        cv2.imshow('tf-pose-estimation result', image)
-        fps_time = time.time()
-        if cv2.waitKey(1) == 27:
-            break
-        logger.debug('finished+')
-
-    cv2.destroyAllWindows()
+    def plot_pose(self, image, points):
+        try:
+            return TfPoseEstimator.draw_humans(image, points, imgcopy=False)
+        except:
+            pose_logger.warning("Error plotting human skeleton")
+            return None

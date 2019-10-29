@@ -25,5 +25,5 @@ class gestureClassification():
     def delete_from_quue(self):
         print("Hello World")
 
-    def classify_gesture(self)
+    def classify_gesture(self):
         print("Hello WOrld")
