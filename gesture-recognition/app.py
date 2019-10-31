@@ -73,9 +73,9 @@ class main(BoxLayout):
 
         if image is not None:
 
-            face_locations, face_names = self.faces.identify_faces()
+            #face_locations, face_names = self.faces.identify_faces()
             #TODO Add pose processing algorithms. Make sure to pass in the image before drawing on it
-            image = self.faces.draw_faces(image, face_locations, face_names)
+            #image = self.faces.draw_faces(image, face_locations, face_names)
 
             cv2.imwrite('foo.png', image)
             self.ids.image_source.reload()
@@ -117,7 +117,7 @@ class main(BoxLayout):
         box.add_widget(remote_btn)
 
         make_embeddings_btn = Button(text="Make Facial Embeddings", bold=True)
-        make_embeddings_btn.bind(on_press=self.makeFaceEmbeddings())
+        make_embeddings_btn.bind(on_press=self.makeFaceEmbeddings)
         box.add_widget(make_embeddings_btn)
 
         self.popup = Popup(title='Settings', content=box, size_hint=(.6, .4))

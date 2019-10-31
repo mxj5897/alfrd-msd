@@ -53,7 +53,7 @@ class faceRecognition():
             y.extend(labels)
         return x, y
 
-    def make_dataset_embeddings(self, ret):
+    def make_dataset_embeddings(self):
         try:
 
             # Need to create new embeddings for users
