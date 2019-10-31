@@ -33,6 +33,7 @@ class faceRecognition():
     def load_user(self, directory):
         faces = list()
         for filename in os.listdir(directory):
+            print(filename)
             path = directory + filename
             face = self.create_embedding(path)
             faces.append(face)
@@ -40,7 +41,6 @@ class faceRecognition():
 
     def load_dataset(self, directory):
         x, y = list(), list()
-
         for subdir in os.listdir(directory):
             path = directory + subdir + '/'
 
@@ -49,16 +49,17 @@ class faceRecognition():
 
             faces = self.load_user(path)
             labels = [subdir for _ in range(len(faces))]
+
+            print('loaded %d examples from class: %s' % (len(faces), subdir))
+
             x.extend(faces)
             y.extend(labels)
         return x, y
 
-    def make_dataset_embeddings(self, ret):
+    def make_dataset_embeddings(self):
         try:
-
             # Need to create new embeddings for users
             encodings, names = self.load_dataset(constants.FACE_DATASET_PATH)
-
             # Save out facial ecnoding date for future use
             np.save('encodings', encodings)
             np.save('names', names)

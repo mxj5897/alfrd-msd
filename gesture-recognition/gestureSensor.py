@@ -32,7 +32,7 @@ class Sensors():
 
     def get_method(self):
         try:
-            if not constants.REMOTE_SERVER:
+            if not constants.REMOTE_SENSOR:
                 kinect_video = self.get_kinect_video()
                 if kinect_video is not None:
                     return "kinect"
@@ -94,9 +94,13 @@ class Sensors():
             self.video.release()
 
     def set_camera(self, source):
-        self.video = cv2.VideoCapture(0)
-        if self.video is None:
-            sensor_logger.warning('No camera available')
+        try:
+            self.video = cv2.VideoCapture(0)
+            if self.video is None:
+                sensor_logger.warning('Set Camera - No camera available')
+        except:
+            sensor_logger.warning("Set Camera - No camera available")
+
 
     def get_camera_video(self):
         try:
@@ -107,6 +111,6 @@ class Sensors():
 
             return image
         except:
-            sensor_logger.warning('No camera available')
+            sensor_logger.warning('Get Camera - No camera available')
         return None
 

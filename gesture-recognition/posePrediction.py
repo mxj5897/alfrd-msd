@@ -2,6 +2,7 @@
 #
 # Class for performing pose predicition in an image
 #
+#
 ########################################################################################################################
 import argparse
 import time
@@ -35,10 +36,10 @@ class Poses():
             self.w,self.h = model_wh(constants.POSE_RESIZE_OPTION)
 
             if self.w > 0 and self.h > 0:
-                model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME), target_size=(w, h), trt_bool=False)
+                model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME), target_size=(self.w, self.h), trt_bool=False)
             else:
                 model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME), target_size=(432, 368), trt_bool=False)
-
+            print(model)
             return model
         except:
             pose_logger.fatal("Could not find pose estimation model")

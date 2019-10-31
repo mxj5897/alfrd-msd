@@ -9,7 +9,7 @@ import cv2
 import os
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
-# from posePrediction import Poses
+from posePrediction import Poses
 from kivy.config import Config
 
 Config.set('graphics', 'resizable', 0)
@@ -19,10 +19,6 @@ from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.clock import Clock
-import socket
-from threading import *
-from kivy.uix.image import Image
-from kivy.cache import Cache
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
@@ -38,25 +34,25 @@ main:
             size_hint: [1,.85]
             Image:
                 id: image_source
-				source: 'foo.png'
+                source: 'foo.png'
         BoxLayout:
-			size_hint: [1,.15]
-			GridLayout:
-				cols: 3
-				spacing: '10dp'
-				Button:
-					id: status
-					text:'Play'
-					bold: True
-					on_press: root.playPause()
-				Button:
-					text: 'Close'
-					bold: True
-					on_press: root.close()
-				Button:
-					text: 'Setting'
-					bold: True
-					on_press: root.setting()
+            size_hint: [1,.15]
+            GridLayout:
+                cols: 3
+                spacing: '10dp'
+                Button:
+                    id: status
+                    text:'Play'
+                    bold: True
+                    on_press: root.playPause()
+                Button:
+                    text: 'Close'
+                    bold: True
+                    on_press: root.close()
+                Button:
+                    text: 'Setting'
+                    bold: True
+                    on_press: root.setting()
 '''
 
 
@@ -65,7 +61,9 @@ class main(BoxLayout):
     port = None
     play = False
     sensor = Sensors()
+    pose = Poses()
     faces = faceRecognition()
+    model = None
     sensor_method = None
 
     def update(self, sensor):
@@ -73,8 +71,11 @@ class main(BoxLayout):
 
         if image is not None:
 
-            face_locations, face_names = self.faces.identify_faces()
-            #TODO Add pose processing algorithms. Make sure to pass in the image before drawing on it
+            face_locations, face_names = self.faces.identify_faces(image)
+            skeleton = self.pose.get_points(self.model, image)
+            
+            # Draw on image
+            image = self.pose.plot_pose(image, skeleton)
             image = self.faces.draw_faces(image, face_locations, face_names)
 
             cv2.imwrite('foo.png', image)
@@ -85,7 +86,7 @@ class main(BoxLayout):
         else:
             self.ids.status.text = "Stop"
             self.sensor_method = self.sensor.get_method()
-            print(self.sensor_method)
+            self.model = self.pose.get_model()
             if self.sensor_method is not None:
                 Clock.schedule_interval(self.update, 0.1)
             else:
@@ -117,16 +118,16 @@ class main(BoxLayout):
         box.add_widget(remote_btn)
 
         make_embeddings_btn = Button(text="Make Facial Embeddings", bold=True)
-        make_embeddings_btn.bind(on_press=self.makeFaceEmbeddings())
+        make_embeddings_btn.bind(on_press=self.makeFaceEmbeddings)
         box.add_widget(make_embeddings_btn)
 
         self.popup = Popup(title='Settings', content=box, size_hint=(.6, .4))
         self.popup.open()
 
-    def makeFaceEmbeddings(self):
+    def makeFaceEmbeddings(self, btn):
+        print(1)
         self.disabled = True
         self.faces.make_dataset_embeddings()
-        print("Done")
         self.disabled = False
         self.popup.dismiss()
 
