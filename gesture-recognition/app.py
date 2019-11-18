@@ -10,6 +10,7 @@ import os
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
+from gestureClassification import classification
 from kivy.config import Config
 
 Config.set('graphics', 'resizable', 0)
@@ -63,20 +64,28 @@ class main(BoxLayout):
     sensor = Sensors()
     pose = Poses()
     faces = faceRecognition()
-    model = None
+    classify = classification()
+    pose_model = None
+    humans_in_environment = 0
     sensor_method = None
 
     def update(self, sensor):
         image = self.sensor.get_sensor_information(self.sensor_method)
 
         if image is not None:
+            points = self.pose.get_points(self.model,image)
 
-            face_locations, face_names = self.faces.identify_faces(image)
-            skeleton = self.pose.get_points(self.model, image)
-            
-            # Draw on image
-            image = self.pose.plot_pose(image, skeleton)
-            image = self.faces.draw_faces(image, face_locations, face_names)
+            if points is None:
+                pass
+
+            if self.humans_in_environment != len(points):
+                face_locations, face_names = self.faces.identify_faces(image)
+                points = self.pose.assign_face_to_pose(points, face_locations, face_names)
+                self.humans_in_environment = len(points)
+
+            image = self.pose.plot_pose(image, points)
+
+            self.classify.add_to_queue(points)
 
             cv2.imwrite('foo.png', image)
             self.ids.image_source.reload()
@@ -86,7 +95,7 @@ class main(BoxLayout):
         else:
             self.ids.status.text = "Stop"
             self.sensor_method = self.sensor.get_method()
-            self.model = self.pose.get_model()
+            self.pose_model = self.pose.get_model()
             if self.sensor_method is not None:
                 Clock.schedule_interval(self.update, 0.1)
             else:
@@ -125,7 +134,6 @@ class main(BoxLayout):
         self.popup.open()
 
     def makeFaceEmbeddings(self, btn):
-        print(1)
         self.disabled = True
         self.faces.make_dataset_embeddings()
         self.disabled = False

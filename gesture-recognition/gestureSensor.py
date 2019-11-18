@@ -31,6 +31,7 @@ class Sensors():
     method = "unkonwn"
 
     def get_method(self):
+        # Checks to determine what sensor are availble. Returns a string listing the appropriate option
         try:
             if not constants.REMOTE_SENSOR:
                 kinect_video = self.get_kinect_video()
@@ -51,6 +52,7 @@ class Sensors():
             return None
 
     def get_sensor_information(self, method):
+        # Takes in sensor method (string) and returns output for that sensor if it exist
         try:
             sensor_switch = {
                 "kinect": self.get_kinect_video,
@@ -66,6 +68,7 @@ class Sensors():
 
 
     def get_kinect_depth(self):
+        # Returns depth information for kinect sensor
         try:
             return self.convert_kinect_depth(freenect.sync_get_depth()[0])
         except:
@@ -73,6 +76,7 @@ class Sensors():
             return None
 
     def get_kinect_video(self,):
+        # Returns video information for kinect sensor
         try:
             return self.convert_kinect_video(freenect.sync_get_video()[0])
         except:
@@ -81,19 +85,23 @@ class Sensors():
 
 
     def convert_kinect_depth(self, depth):
+        # Necessary pre-processing for kinect data
         np.clip(depth, 0, 2 ** 10 - 1, depth)
         depth >>= 2
         depth = depth.astype(np.uint8)
         return depth
 
     def convert_kinect_video(self, video):
+        # Convert color channels for kinect sensor
         return video[:, :, ::-1]  # RGB -> BGR
 
     def __del__(self):
+        # Release cv2 object
         if self.video is not None:
             self.video.release()
 
     def set_camera(self, source):
+        # Sets the camera for cv2 video capture
         try:
             self.video = cv2.VideoCapture(0)
             if self.video is None:
@@ -103,6 +111,7 @@ class Sensors():
 
 
     def get_camera_video(self):
+        # Returns image information from a cv2 camera
         try:
             # Convert to jpeg
             if self.video.isOpened():

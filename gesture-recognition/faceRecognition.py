@@ -26,20 +26,22 @@ face_logger.addHandler(file_handler)
 class faceRecognition():
 
     def create_embedding(self, image):
+        # Creates a facial emebedding for individual images
         load_image = face_recognition.load_image_file(image)
         encoding = face_recognition.face_encodings(load_image)[0]
         return encoding
 
     def load_user(self, directory):
+        # Calls create_embedding to make embeddings for directory
         faces = list()
         for filename in os.listdir(directory):
-            print(filename)
             path = directory + filename
             face = self.create_embedding(path)
             faces.append(face)
         return (faces)
 
     def load_dataset(self, directory):
+        # Calls load_user to make embeddings for multiple subdirectories
         x, y = list(), list()
         for subdir in os.listdir(directory):
             path = directory + subdir + '/'
@@ -57,9 +59,11 @@ class faceRecognition():
         return x, y
 
     def make_dataset_embeddings(self):
+        # Calls load_dataset and saves out returned embeddings and names to numpy files
         try:
             # Need to create new embeddings for users
             encodings, names = self.load_dataset(constants.FACE_DATASET_PATH)
+
             # Save out facial ecnoding date for future use
             np.save('encodings', encodings)
             np.save('names', names)
@@ -68,6 +72,7 @@ class faceRecognition():
             face_logger.error('Could not create facial encodings. Check to ensure face dataset is in the correct location')
 
     def identify_faces(self, image):
+        # finds and returns all faces in an image with identities
         try:
             if os.path.isfile(constants.FACE_ENCODINGS_PATH) and os.path.isfile(constants.FACE_NAMES_PATH):
                 known_face_encodings = np.load(constants.FACE_ENCODINGS_PATH)
@@ -101,6 +106,7 @@ class faceRecognition():
         return None
 
     def draw_faces(self, image, face_locations, face_names):
+        # draws bounding box around all recognized faces in an image
         try:
             scale_constant = 4
             for (top, right, bottom, left), name in zip(face_locations, face_names):
@@ -120,6 +126,13 @@ class faceRecognition():
             face_logger.error('Could not draw faces')
             return None
 
+    #TODO:: Implement object tracking algorithm to be used after the face is initially detected in the image
+    # Not sure if this is still required
     def face_tracking(self):
-        # TODO:: Implement object tracking algorithm to be used after the face is initially detected in the image
-        print("Hello World")
+        # given an initial bounding box will track faces in an image, returns updated bounding box by one time step
+        return 1
+
+    # TODO:: Implement function, uses kinect depth information to return 3d function.
+    def get_user_3d_position(self):
+        # Uses kinect 3D information to find users the position of humans in the environment
+        return 1
