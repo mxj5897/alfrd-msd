@@ -21,7 +21,7 @@ file_handler.setFormatter(formatter)
 classification_logger.addHandler(file_handler)
 
 
-class gestureClassification():
+class classify():
     # Handles all gesutre classification tasks
     # Has attribute gesture_queue, each unique user should have their own gesture queue,
     # Therefore need as many instances of the class as there are users in the main script
