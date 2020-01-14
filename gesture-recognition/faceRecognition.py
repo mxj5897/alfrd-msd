@@ -58,6 +58,7 @@ class faceRecognition():
             y.extend(labels)
         return x, y
 
+    #TODO:: Change so only embeddings of new users will be created
     def make_dataset_embeddings(self):
         # Calls load_dataset and saves out returned embeddings and names to numpy files
         try:
@@ -125,14 +126,3 @@ class faceRecognition():
         except:
             face_logger.error('Could not draw faces')
             return None
-
-    #TODO:: Implement object tracking algorithm to be used after the face is initially detected in the image
-    # Not sure if this is still required
-    def face_tracking(self):
-        # given an initial bounding box will track faces in an image, returns updated bounding box by one time step
-        return 1
-
-    # TODO:: Implement function, uses kinect depth information to return 3d function.
-    def get_user_3d_position(self):
-        # Uses kinect 3D information to find users the position of humans in the environment
-        return 1

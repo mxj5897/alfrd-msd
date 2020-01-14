@@ -10,7 +10,7 @@ import os
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
-from gestureClassification import classification
+from gestureClassification import Classify
 from kivy.config import Config
 
 Config.set('graphics', 'resizable', 0)
@@ -25,6 +25,45 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 
+
+# main:
+#     BoxLayout:
+#         orientation: 'vertical'
+#         padding: root.width * 0.05, root.height * 0.05
+#         spacing: '5dp'
+#         canvas:
+#             Rectangle:
+#                 id: image_source
+#                 size: self.size
+#                 pos: self.pos
+#                 source: 'foo.png'
+#         BoxLayout:
+#             orientation: 'vertical'
+#             size_hint: [1, .90]
+#         AnchorLayout:
+#             anchor_y: 'bottom'
+#             size_hint: [1, .10]
+#             GridLayout:
+#                 cols: 4
+#                 spacing: '10dp'
+#                 Button:
+#                     id:status
+#                     text:'Play'
+#                     bold: True
+#                     on_press: root.playPause()
+#                 Button:
+#                     text: 'Add Gesture'
+#                     bold: True
+#                     on_press: root.addGesturePopup()
+#                 Button:
+#                     text: 'Settings'
+#                     bold: True
+#                     on_press: root.setting()
+#                 Button:
+#                     text: 'Close'
+#                     bold: True
+#                     on_press: root.close()
+# '''
 kv = '''
 main:
     BoxLayout:
@@ -64,7 +103,7 @@ class main(BoxLayout):
     sensor = Sensors()
     pose = Poses()
     faces = faceRecognition()
-    classify = classification()
+    classify = Classify()
     pose_model = None
     humans_in_environment = 0
     sensor_method = None
@@ -154,6 +193,3 @@ class videoStreamApp(App):
 
 
 videoStreamApp().run()
-
-
-

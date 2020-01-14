@@ -33,22 +33,35 @@ class Sensors():
     def get_method(self):
         # Checks to determine what sensor are availble. Returns a string listing the appropriate option
         try:
-            if not constants.REMOTE_SENSOR:
+            kinect_video = self.get_kinect_video()
+            if kinect_video is not None:
+                return "kinect"
+            else:
+                self.set_camera(0)
+                camera_video = self.get_camera_video()
+                if camera_video is not None:
+                    return "camera"
+        except:
+            sensor_logger.fatal('No available sensors detected, terminating application')
+            return None
+
+    def switch_method(self, currentMethod):
+        try:
+            if currentMethod == 'kinect':
+                self.set_camera(0)
+                camera_video = self.get_camera_video()
+                if camera_video is not None:
+                    return "camera"
+                else:
+                    return currentMethod
+            else:
                 kinect_video = self.get_kinect_video()
                 if kinect_video is not None:
-                    return "kinect"
+                    return 'kinect'
                 else:
-                    self.set_camera(0)
-                    camera_video = self.get_camera_video()
-                    if camera_video is not None:
-                        return "camera"
-            else:
-                # TODO:: Implement remote server option
-                sensor_logger.fatal("No available sensors detected, terminating application")
-                return None
+                    return currentMethod
         except:
-            print(3)
-            sensor_logger.fatal('No available sensors detected, terminating application')
+            sensor_logger.warning('Could not switch sensor method')
             return None
 
     def get_sensor_information(self, method):
@@ -122,4 +135,3 @@ class Sensors():
         except:
             sensor_logger.warning('Get Camera - No camera available')
         return None
-

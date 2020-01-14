@@ -18,7 +18,8 @@ REMOTE_SENSOR = False
 # Pose prediction constants
 POSE_MODEL_NAME = 'mobilenet_thin'
 POSE_RESIZE_OPTION = "432x368"
+POINTS = [0, 1, 2, 3, 4, 5, 6, 7, 15, 16, 18]
 RESIZE_OUT_OPTION = 4.0
 # Gesture Classification constants
 QUEUE_MAX_SIZE = 50
-
+GESTURE_THRESHOLD = 10
