@@ -36,17 +36,13 @@ pose_logger.addHandler(file_handler)
 #     21: "LHeel", 22: "RBigToe", 23: "RSmallToe", 24: "RHeel", 25: "Background"}
 
 class Poses():
+
     w,h = None, None
-    CocoPairs = [
+    Pairs = [
         (1, 2), (1, 5), (2, 3), (3, 4), (5, 6), (6, 7), (1, 8), (8, 9), (9, 10), (1, 11),
         (11, 12), (12, 13), (1, 0), (0, 14), (14, 16), (0, 15), (15, 17), (2, 16), (5, 17)
     ]  # = 19
-    CocoPairsRender = CocoPairs[:-2]
-
-    # Colors for plotting the skeletons on frame
-    CocoColors = [[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0], [85, 255, 0], [0, 255, 0],
-                  [0, 255, 85], [0, 255, 170], [0, 255, 255], [0, 170, 255], [0, 85, 255], [0, 0, 255], [85, 0, 255],
-                  [170, 0, 255], [255, 0, 255], [255, 0, 170], [255, 0, 85]]
+    PairsRender = Pairs[:-2]
 
     def get_model(self):
         # Returns the appropriate model used for pose detection. For realtime use "mobilenet_thin"
@@ -73,6 +69,7 @@ class Poses():
             people = model.inference(image, resize_to_default=(self.w > 0 and self.h > 0),
                                  upsample_size=constants.RESIZE_OUT_OPTION)
             points = []
+            ind_point = {}
 
             if people is not None:
                 for person in people:
@@ -80,8 +77,9 @@ class Poses():
                     for i in constants.POINTS:
                         if i not in person.body_parts.keys():
                             continue
-                        points.append([person.body_parts[i].x, person.body_parts[i].y])
-
+                        ind_point[i] = [person.body_parts[i].x, person.body_parts[i].y]
+                
+                points.append(ind_point)
                 return points
             else:
                 return None
@@ -90,41 +88,43 @@ class Poses():
             return None
 
     def plot_faces(self, image, humans):
-        identities = [human.identity for human in humans]
-        heads = [[human.current_pose[:][0].x, human.current_pose[:][0].y] for human in humans]
         font = cv2.FONT_HERSHEY_DUPLEX
 
-        for iden, head in zip(identities, heads):
-            cv2.putText(image, iden, (head[0] + 6, head[1] + 6), font, 1.0, (0, 255, 255), 1)
+        for i, human in enumerate(humans):
+            if 0 in human.current_pose.keys():
+                image_h, image_w = image.shape[:2]
+
+                head = [human.current_pose[0][0]*image_w, human.current_pose[0][1]*image_h]
+                cv2.putText(image, human.identity, (int(head[0]) + 6, int(head[1]) + 6), font, 1.0, (0, 255, 255), 1)
 
         return image
 
-    def plot_pose(self, image, points):
-        #TODO:: Change so that it uses the human object
+    def plot_pose(self, image, humans):
         # Takes in points object and plots the human skeleton on the input image
         try:
-            if image is None or points is None:
+            if image is None:
                 pose_logger.warning("No image or points passed in to draw skeletal frame")
                 return None
+            if humans is None:
+                return image
 
             image_h, image_w = image.shape[:2]
+            
             centers = {}
-            for point in points:
+            for human in humans:
                 #draw points
                 for i in range(18):
-                    if i not in point.body_parts.key():
+                    if i not in human.current_pose.keys():
                         continue
 
-                    body_part = point.body_parts[i]
-                    center = (int(body_part.x*image_w+0.5), int(body_part.y*image_h+0.5))
+                    center = (int(human.current_pose[i][0]*image_w+0.5), int(human.current_pose[i][1]*image_h+0.5))
                     centers[i] = center
-                    cv2.circle(image, center, 2, self.CocoColors[i], thickness=3, lineType=8, shift=0)
-
-                for pair_order, pair in enumerate(self.CocoPairsRender):
-                    if pair[0] not in point.body_parts.keys() or pair[1] not in point.body_parts.keys():
+                    image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
+            
+                for pair in self.PairsRender:
+                    if pair[0] not in human.current_pose.keys() or pair[1] not in human.current_pose.keys():
                         continue
-
-                    cv2.line(image, centers[pair[0]], centers[pair[1]], self.CocoColors[pair_order], 3)
+                    image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
 
             return image
         except:
@@ -135,23 +135,22 @@ class Poses():
         # This function should only be called when the number of skeletons in the image changes
         # Assumes that that number of skeletons in the frame will always
         # be greater than or equal to the number of faces
-
         if points == []:
             return points
-
         humans = []
         for person in points:
             human = Humans()
+            human.identity = "Unknown"
             human.current_pose = person
-            # Change so that only looking for the face
-            for i in range(18):
-                if i not in person.body_parts.keys():
+
+            for i in [0,15,16]:
+                if i not in person.keys():
                     continue
 
-                target_body_part = person.body_parts[i]
+                target_body_part = person[i]
                 for (top, right, bottom, left), name in zip(face_locations, face_names):
-                    if target_body_part.x > left*4 and target_body_part.x < right*4:
-                        if target_body_part.y >= bottom*4 and target_body_part.y < top*4:
+                    if target_body_part[0] > left*4 and target_body_part[0] < right*4:
+                        if target_body_part[1] >= bottom*4 and target_body_part[1] < top*4:
                             human.identity = name
                             continue
                         else:

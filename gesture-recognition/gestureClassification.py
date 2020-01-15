@@ -52,29 +52,30 @@ class Classify():
         except:
             classification_logger.warning('Could not update the dictionary')
 
-    def clear_dictionary(self):
+    def clear_dictionary(self, btn):
         try:
-            if os.path.isfile('./dictionary_gesture.csv') and os.path.isfile('./dictionary_labels.csv'):
-                os.remove('dictionary_gestures.csv')
-                os.remove('dictionary_labels.csv')
+            if os.path.isfile('./dictionary_gestures.csv') and os.path.isfile('./dictionary_labels.csv'):
+                os.remove('./dictionary_gestures.csv')
+                os.remove('./dictionary_labels.csv')
         except:
             classification_logger.warning('Could not erase dictionary files.')
 
     def add_to_dictionary(self, gesture, label):
         try:
-            with open('./dictionary_gestures.csv') as g_file:
+            with open('./dictionary_gestures.csv', 'a') as g_file:
                 g_writer = csv.writer(g_file, delimiter=';')
                 g_writer.writerow(gesture)
-            with open('./dictionary_labels.csv') as l_file:
+            with open('./dictionary_labels.csv', 'a') as l_file:
                 l_writer = csv.writer(l_file, delimiter=';')
-                l_writer.writerow(gesture)
+                l_writer.writerow([label])
+                print(label)
+            self.update_dictionary()
         except:
             classification_logger.warning('Could not add element to dictionary')
 
 
     def add_to_queue(self, item):
         # Takes in an element and adds it to the gesuture queue
-        #TODO:: convert from x, y object to 2D time series
         try:
             if len(self.gesture_queue) >= constants.QUEUE_MAX_SIZE:
                 self.delete_from_queue()
@@ -94,6 +95,9 @@ class Classify():
         try:
             prediction = 'Unkonwn'
             best_distance = -1
+            if self.dictionary_gestures is None and self.dictionary_labels is None:
+                self.update_dictionary()
+
             for pred, gesture in zip(self.dictionary_labels, self.dictionary_gestures):
                 distance, path = fastdtw(self.gesture_queue, gesture)
 
