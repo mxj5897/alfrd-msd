@@ -14,20 +14,8 @@ class Humans():
         self.identity = None
         self.prediction = None
         self.classify = Classify()
-        self.current_pose = {
-                0 : None,
-                1 : None,
-                2: None,
-                3: None,
-                4: None,
-                5: None,
-                6: None,
-                7:  None,
-                8:  None,
-                9:  None,
-                10: None,
-            }
-        self.sensor =Sensors()
+        self.current_pose = None
+
 
     # TODO:: Implement function, uses kinect depth information to return 3d function.
     def get_user_3d_position(self):

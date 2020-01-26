@@ -1,15 +1,8 @@
 ########################################################################################################################
 #
-# Main application with GUI. The GUI will not be used in the final version of the project, but will be helpful for
-# debugging.
+# Main application with GUI.
 #
 ########################################################################################################################
-
-#TODO:: Look into expanding to different operating systems / check imports
-
-# For Will 
-# TODO:: Implement dual folder structure
-RUNNING_IN_PYCHARM = False
 
 import cv2
 import os
@@ -50,6 +43,7 @@ class AddGesturePopUp(BoxLayout):
 
     def addGesture(self):
         # Determines save gesture button behavior
+        #TODO:: Sanitize inputs
         self.classify.add_to_dictionary(self.temp_queue, self.ids.gestureLabel.text)
 
     def start_recording(self):
@@ -80,21 +74,21 @@ class AddGesturePopUp(BoxLayout):
             if os.path.isfile('temp.png'):
                 os.remove('temp.png')
             shutil.copy('temp1.png', 'temp.png')
-            self.ids.add_source.reload()
             return False
-        
+
         image = self.sensor.get_sensor_information(self.sensor_method)
 
         if image is not None:
+            im_height, im_width = image.shape[:2]
             points = self.pose.get_points(self.pose_model,image)
 
             # plot points for user feedback
             humans = self.pose.assign_face_to_pose(points, [], [])
-            image = self.pose.plot_pose(image,humans)
+            image = self.pose.plot_pose(image,humans, im_height, im_width)
 
             if points is not None:
                 self.temp_queue.append(points)
-            
+
             cv2.imwrite('temp.png', image)
             self.ids.add_source.reload()
 
@@ -108,9 +102,9 @@ class SettingsPopUp(BoxLayout):
         self.classify = Classify()
         #self.aux_info = False
         self.sensor_method = None
-    
+
     def makeFaceEmbeddings(self):
-        # Creates facial embeddings from ./dataset 
+        # Creates facial embeddings from ./dataset
         self.disabled = True
         self.faces.make_dataset_embeddings()
         self.disabled = False
@@ -176,20 +170,24 @@ class gestureWidget(Widget):
     def __init__( self, **kwargs ):
         super(gestureWidget, self).__init__(**kwargs)
 
-        self.ipAddress = None
-        self.port = None
+        #self.ipAddress = None
+        #self.port = None
         self.play = False
-        self.skip = False
         self.sensor = Sensors()
         self.pose = Poses()
         self.faces = faceRecognition()
         self.classify = Classify()
-        self.pose_model = None
+        self.pose_model = self.pose.get_model()
         self.humans_in_environment = 0
-        self.sensor_method = None
+        self.sensor_method = self.sensor.get_method()
         self.aux_info = False
         self.humans = []
         self.settings = SettingsPopUp()
+
+        # resets image
+        if os.path.isfile('foo.png'):
+            os.remove("foo.png")
+        shutil.copy('foo1.png', 'foo.png')
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
@@ -199,33 +197,32 @@ class gestureWidget(Widget):
             points = self.pose.get_points(self.pose_model,image)
 
             if points is not None:
+                im_height, im_width = image.shape[:2]
 
-                # Get user information if their is a change in the number of humans
-                # in the environment
-                # if self.humans_in_environment != len(points):
-                if self.skip:
-                    face_locations, face_names = self.faces.identify_faces(image)
-                    self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names)
-                    self.humans_in_environment = len(points)
-                # else:
-                #     # Update the poses of each individual human in frame
-                #     self.humans = self.pose.update_human_poses(points, self.humans)
-                
-                self.skip = not self.skip
+                # Get identities if change in the number of humans (points) frame
+                if self.humans_in_environment != len(points):
+                   face_locations, face_names = self.faces.identify_faces(image)
+                   self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names)
+                   self.humans_in_environment = len(points)
+                else:
+                # Update the poses of each individual human in frame
+                    self.humans = self.pose.update_human_poses(points, self.humans)
 
-                # Display user info / only display pose info if option selected in settings
+                # Plot user identities and (optional) poses
+                image = self.pose.plot_faces(image, self.humans, im_height, im_width)
                 if self.settings.ids.aux_info.text == 'Display Auxilary Info: True':
-                    image = self.pose.plot_pose(image, self.humans)    
-                image = self.pose.plot_faces(image, self.humans) # Just plot identities
+                    image = self.pose.plot_pose(image, self.humans, im_height, im_width)
 
-                # Get Prediction
-                for i in range(self.humans_in_environment):
-                     self.humans[i].classify.add_to_queue(self.humans[i].current_pose)
-                     print('Added')
-                #     self.humans[i].prediction = self.humans[i].classify.classify_gesture()
+                # Update each respective queue and classify gestures
+                for human in self.humans:
+                    if human.identity == "Unknown":
+                         continue
 
-                #Print Out prediction / calls to robot.py
-
+                    human.classify.add_to_queue(human.current_pose.items())
+                    # self.humans[i].prediction = self.humans[i].classify.classify_gesture()
+                    #TODO:: Add printout / popup of valid prediction
+                    #TODO:: Calls to Robot.py
+                
             cv2.imwrite('foo.png', image)
             self.ids.image_source.reload()
 
@@ -238,7 +235,6 @@ class gestureWidget(Widget):
             Clock.unschedule(self.update)
         else:
             self.ids.status.text = "Stop"
-            self.pose_model = self.pose.get_model()
             self.ids.status.background_color = [0,1,1,1]
             if self.sensor_method is None:
                 self.sensor_method = self.sensor.get_method()
@@ -246,20 +242,16 @@ class gestureWidget(Widget):
             if self.sensor_method is not None:
                 Clock.schedule_interval(self.update, 0.1)
             else:
-                self.close()
+                #TODO:: Write popup for error message
+                print("Could not find available sensor")
 
     def close(self):
         # close app
         App.get_running_app().stop()
-        if os.path.isfile('foo.png'):
-            os.remove("foo.png")
-        if os.path.isfile('temp.png'):
-            os.remove('temp.png')
-        shutil.copy('temp1.png', 'temp.png')
-        shutil.copy('foo1.png', 'foo.png')
 
     def setting(self):
         # Display settings popup window
+        self.settings = SettingsPopUp()
         self.popup = Popup(title='Settings', content=self.settings, size_hint=(.6, .4))
         self.popup.open()
 

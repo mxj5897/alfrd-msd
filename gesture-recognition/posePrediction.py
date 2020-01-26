@@ -73,12 +73,12 @@ class Poses():
 
             if people is not None:
                 for person in people:
-             
+
                     for i in constants.POINTS:
                         if i not in person.body_parts.keys():
                             continue
                         ind_point[i] = [person.body_parts[i].x, person.body_parts[i].y]
-                
+
                 points.append(ind_point)
                 return points
             else:
@@ -87,19 +87,19 @@ class Poses():
             pose_logger.warning("Error finding pose points")
             return None
 
-    def plot_faces(self, image, humans):
+    def plot_faces(self, image, humans,image_h, image_w):
         font = cv2.FONT_HERSHEY_DUPLEX
+        # image_h, image_w = image.shape[:2]
 
         for i, human in enumerate(humans):
             if 0 in human.current_pose.keys():
-                image_h, image_w = image.shape[:2]
-
+                
                 head = [human.current_pose[0][0]*image_w, human.current_pose[0][1]*image_h]
-                cv2.putText(image, human.identity, (int(head[0]) + 6, int(head[1]) + 6), font, 1.0, (0, 255, 255), 1)
+                image = cv2.putText(image, human.identity, (int(head[0]) + 6, int(head[1]) + 6), font, 1.0, (0, 255, 255), 1)
 
         return image
 
-    def plot_pose(self, image, humans):
+    def plot_pose(self, image, humans,image_h, image_w):
         # Takes in points object and plots the human skeleton on the input image
         try:
             if image is None:
@@ -108,8 +108,8 @@ class Poses():
             if humans is None:
                 return image
 
-            image_h, image_w = image.shape[:2]
-            
+            # image_h, image_w = image.shape[:2]
+
             centers = {}
             for human in humans:
                 #draw points
@@ -120,10 +120,11 @@ class Poses():
                     center = (int(human.current_pose[i][0]*image_w+0.5), int(human.current_pose[i][1]*image_h+0.5))
                     centers[i] = center
                     image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
-            
+
                 for pair in self.PairsRender:
                     if pair[0] not in human.current_pose.keys() or pair[1] not in human.current_pose.keys():
                         continue
+
                     image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
 
             return image
@@ -157,11 +158,24 @@ class Poses():
                             human.identity = "Unknown"
 
                 humans.append(human)
-        # return humans
         return humans
 
-    # Note think that the best way to do this may be to have human 1 always correspond to the
-    # leftmost human, => update function is no longer going to be on change in the human count
-    #TODO:: Implement this function
     def update_human_poses(self, points, humans):
-        pass
+        # Minimizes the distance between the poses of each human between frames
+        # Does not account for overlapping humans in frames
+	    #TODO:: Add proximity test to determine how close humans are in environment??
+        for human in humans:
+            min_dist_cost = 0
+            for pnt in points:
+                dist_cost = 0
+                for i in constants.POINTS:
+                    if i in human.current_pose.keys() and i in pnt.keys():
+                        dist_cost += (human.current_pose[i][0] - pnt[i][0]) + (human.current_pose[i][1] - pnt[i][1])
+                    elif(i not in human.current_pose.keys() and i not in pnt.keys()):
+                        dist_cost += 0
+                    else:
+                        dist_cost += .1
+                if min_dist_cost == 0 or min_dist_cost > dist_cost:
+                    min_dist_cost = dist_cost
+                    human.current_pose = pnt
+        return humans

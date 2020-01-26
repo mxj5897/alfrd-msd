@@ -7,6 +7,13 @@ gestureWidget:
             size: self.width, self.height
             pos: self.x, self.y
 
+<ErrorPopup>:
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            id: error_message
+            text: "Error Message"
+
 <AddGesturePopUp>:
     BoxLayout:
         orientation: 'vertical'
@@ -36,12 +43,18 @@ gestureWidget:
                     text: 'Save'
                     bold: True
                     on_press: root.addGesture()
+    
 
 <SettingsPopUp>:
     GridLayout:
         cols: 1
         Button:
-            text: 'Make Facial Embeddings'
+            text: 'Add Users Manual'
+            on_press: root.makeFaceEmbeddings()
+            bold: True
+        Button:
+            text: 'Add Users Automatic'
+            id: auto_add_users
             on_press: root.makeFaceEmbeddings()
             bold: True
         Button:
@@ -54,10 +67,16 @@ gestureWidget:
             on_press: root.gestureList()
             bold: True
         Button:
+            text: 'Server Mode Off'
+            id: server_mode
+            on_press: root.displayHelp()
+            bold: True
+        Button:
             text: 'Help'
             on_press: root.displayHelp()
             bold: True
-        
+
+
 
 <gestureWidget>:
     BoxLayout:

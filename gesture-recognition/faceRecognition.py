@@ -104,7 +104,7 @@ class faceRecognition():
             return(face_locations, face_names)
         except:
             face_logger.error('Error in facial identification process')
-        return None
+        return None, None
 
     def draw_faces(self, image, face_locations, face_names):
         # draws bounding box around all recognized faces in an image

@@ -39,6 +39,7 @@ class Classify():
         self.dictionary_gestures = None
 
     def read_in_file(self, path):
+        # Load in csv files
         file_df = pd.read_csv(path)
         file_array = file_df.to_numpy()
         file_array = np.nan_to_num(file_array)
@@ -46,6 +47,7 @@ class Classify():
         return file_array
 
     def update_dictionary(self):
+        # Upload the contents of the csv files into memory
         try:
             self.dictionary_gestures = self.read_in_file('dictionary_gestures.csv')
             self.dictionary_labels = self.read_in_file('dictionary_labels.csv')
@@ -53,6 +55,7 @@ class Classify():
             classification_logger.warning('Could not update the dictionary')
 
     def clear_dictionary(self, btn):
+        # Clears dictionary by deleting csv files
         try:
             if os.path.isfile('./dictionary_gestures.csv') and os.path.isfile('./dictionary_labels.csv'):
                 os.remove('./dictionary_gestures.csv')
@@ -61,6 +64,7 @@ class Classify():
             classification_logger.warning('Could not erase dictionary files.')
 
     def add_to_dictionary(self, gesture, label):
+        # Add label and gesture to dictionary to two separate csv files
         try:
             with open('./dictionary_gestures.csv', 'a') as g_file:
                 g_writer = csv.writer(g_file, delimiter=';')
@@ -79,7 +83,7 @@ class Classify():
         try:
             if len(self.gesture_queue) >= constants.QUEUE_MAX_SIZE:
                 self.delete_from_queue()
-            self.gesture_queue.append(item)
+            self.gesture_queue.append([item])
         except:
             classification_logger.warning("Could not add element to the gesture queue")
 
