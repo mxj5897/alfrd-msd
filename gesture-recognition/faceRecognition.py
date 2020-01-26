@@ -26,11 +26,13 @@ face_logger.addHandler(file_handler)
 class faceRecognition():
 
     def create_embedding(self, image):
+        # Creates a facial emebedding for individual images
         load_image = face_recognition.load_image_file(image)
         encoding = face_recognition.face_encodings(load_image)[0]
         return encoding
 
     def load_user(self, directory):
+        # Calls create_embedding to make embeddings for directory
         faces = list()
         for filename in os.listdir(directory):
             path = directory + filename
@@ -39,8 +41,8 @@ class faceRecognition():
         return (faces)
 
     def load_dataset(self, directory):
+        # Calls load_user to make embeddings for multiple subdirectories
         x, y = list(), list()
-
         for subdir in os.listdir(directory):
             path = directory + subdir + '/'
 
@@ -49,13 +51,17 @@ class faceRecognition():
 
             faces = self.load_user(path)
             labels = [subdir for _ in range(len(faces))]
+
+            print('loaded %d examples from class: %s' % (len(faces), subdir))
+
             x.extend(faces)
             y.extend(labels)
         return x, y
 
+    #TODO:: Change so only embeddings of new users will be created
     def make_dataset_embeddings(self):
+        # Calls load_dataset and saves out returned embeddings and names to numpy files
         try:
-
             # Need to create new embeddings for users
             encodings, names = self.load_dataset(constants.FACE_DATASET_PATH)
 
@@ -67,6 +73,7 @@ class faceRecognition():
             face_logger.error('Could not create facial encodings. Check to ensure face dataset is in the correct location')
 
     def identify_faces(self, image):
+        # finds and returns all faces in an image with identities
         try:
             if os.path.isfile(constants.FACE_ENCODINGS_PATH) and os.path.isfile(constants.FACE_NAMES_PATH):
                 known_face_encodings = np.load(constants.FACE_ENCODINGS_PATH)
@@ -97,9 +104,10 @@ class faceRecognition():
             return(face_locations, face_names)
         except:
             face_logger.error('Error in facial identification process')
-        return None
+        return None, None
 
     def draw_faces(self, image, face_locations, face_names):
+        # draws bounding box around all recognized faces in an image
         try:
             scale_constant = 4
             for (top, right, bottom, left), name in zip(face_locations, face_names):
@@ -118,7 +126,3 @@ class faceRecognition():
         except:
             face_logger.error('Could not draw faces')
             return None
-
-    def face_tracking(self):
-        # TODO:: Implement object tracking algorithm to be used after the face is initially detected in the image
-        print("Hello World")

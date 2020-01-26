@@ -2,18 +2,19 @@
 #
 # Class for performing pose predicition in an image
 #
+#
 ########################################################################################################################
 import argparse
 import time
 
 import cv2
 import numpy as np
-
-" tf-openpose/tf_pose/"
+from human import Humans
 import logging
 import constants
-from tf_openpose.tf_pose.estimator import TfPoseEstimator
-from tf_openpose.tf_pose.networks import get_graph_path, model_wh
+from human import Humans
+from pose.tf_pose.estimator import TfPoseEstimator
+from pose.tf_pose.networks import get_graph_path, model_wh
 
 
 pose_logger = logging.getLogger(__name__)
@@ -25,35 +26,156 @@ file_handler = logging.FileHandler('gestureRecognition.log')
 file_handler.setFormatter(formatter)
 
 pose_logger.addHandler(file_handler)
-
+# Mapping of points returned by openpose
+#  point_ordering = {
+#     0:"Nose", 1:"Neck", 2:"RShoulder", 3:"RElbow",
+#     4:"RWrist", 5:"LShoulder", 6:"LElbow",  7:"LWrist",
+#     8:"MidHip", 9: "RHip", 10: "RKnee", 11: "RAnkle",
+#     12: "LHip", 3: "LKnee", 14: "LAnkle", 15: "REye",
+#     16: "LEye", 17: "REar", 18: "LEar", 19: "LBigToe", 20: "LSmallToe",
+#     21: "LHeel", 22: "RBigToe", 23: "RSmallToe", 24: "RHeel", 25: "Background"}
 
 class Poses():
+
     w,h = None, None
+    Pairs = [
+        (1, 2), (1, 5), (2, 3), (3, 4), (5, 6), (6, 7), (1, 8), (8, 9), (9, 10), (1, 11),
+        (11, 12), (12, 13), (1, 0), (0, 14), (14, 16), (0, 15), (15, 17), (2, 16), (5, 17)
+    ]  # = 19
+    PairsRender = Pairs[:-2]
 
     def get_model(self):
+        # Returns the appropriate model used for pose detection. For realtime use "mobilenet_thin"
         try:
             self.w,self.h = model_wh(constants.POSE_RESIZE_OPTION)
 
             if self.w > 0 and self.h > 0:
-                model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME), target_size=(w, h), trt_bool=False)
+                model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME),
+                                        target_size=(self.w, self.h), trt_bool=False)
             else:
-                model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME), target_size=(432, 368), trt_bool=False)
-
+                model = TfPoseEstimator(get_graph_path(constants.POSE_MODEL_NAME),
+                                        target_size=(432, 368), trt_bool=False)
             return model
         except:
             pose_logger.fatal("Could not find pose estimation model")
             return None
 
     def get_points(self, model, image):
+        # Makes an inference of the model. Returns points object of the predicted pose
         try:
-            return model.inference(image, resize_to_default=(self.w > 0 and self.h > 0), upsample_size=constants.RESIZE_OUT_OPTION)
+            if image is None:
+                pose_logger.warning("No image passed into the openpose model")
+                return None
+            people = model.inference(image, resize_to_default=(self.w > 0 and self.h > 0),
+                                 upsample_size=constants.RESIZE_OUT_OPTION)
+            points = []
+            ind_point = {}
+
+            if people is not None:
+                for person in people:
+
+                    for i in constants.POINTS:
+                        if i not in person.body_parts.keys():
+                            continue
+                        ind_point[i] = [person.body_parts[i].x, person.body_parts[i].y]
+
+                points.append(ind_point)
+                return points
+            else:
+                return None
         except:
             pose_logger.warning("Error finding pose points")
             return None
 
-    def plot_pose(self, image, points):
+    def plot_faces(self, image, humans,image_h, image_w):
+        font = cv2.FONT_HERSHEY_DUPLEX
+        # image_h, image_w = image.shape[:2]
+
+        for i, human in enumerate(humans):
+            if 0 in human.current_pose.keys():
+                
+                head = [human.current_pose[0][0]*image_w, human.current_pose[0][1]*image_h]
+                image = cv2.putText(image, human.identity, (int(head[0]) + 6, int(head[1]) + 6), font, 1.0, (0, 255, 255), 1)
+
+        return image
+
+    def plot_pose(self, image, humans,image_h, image_w):
+        # Takes in points object and plots the human skeleton on the input image
         try:
-            return TfPoseEstimator.draw_humans(image, points, imgcopy=False)
+            if image is None:
+                pose_logger.warning("No image or points passed in to draw skeletal frame")
+                return None
+            if humans is None:
+                return image
+
+            # image_h, image_w = image.shape[:2]
+
+            centers = {}
+            for human in humans:
+                #draw points
+                for i in range(18):
+                    if i not in human.current_pose.keys():
+                        continue
+
+                    center = (int(human.current_pose[i][0]*image_w+0.5), int(human.current_pose[i][1]*image_h+0.5))
+                    centers[i] = center
+                    image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
+
+                for pair in self.PairsRender:
+                    if pair[0] not in human.current_pose.keys() or pair[1] not in human.current_pose.keys():
+                        continue
+
+                    image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
+
+            return image
         except:
             pose_logger.warning("Error plotting human skeleton")
             return None
+
+    def assign_face_to_pose(self,points, face_locations, face_names):
+        # This function should only be called when the number of skeletons in the image changes
+        # Assumes that that number of skeletons in the frame will always
+        # be greater than or equal to the number of faces
+        if points == []:
+            return points
+        humans = []
+        for person in points:
+            human = Humans()
+            human.identity = "Unknown"
+            human.current_pose = person
+
+            for i in [0,15,16]:
+                if i not in person.keys():
+                    continue
+
+                target_body_part = person[i]
+                for (top, right, bottom, left), name in zip(face_locations, face_names):
+                    if target_body_part[0] > left*4 and target_body_part[0] < right*4:
+                        if target_body_part[1] >= bottom*4 and target_body_part[1] < top*4:
+                            human.identity = name
+                            continue
+                        else:
+                            human.identity = "Unknown"
+
+                humans.append(human)
+        return humans
+
+    def update_human_poses(self, points, humans):
+        # Minimizes the distance between the poses of each human between frames
+        # Does not account for overlapping humans in frames
+	    #TODO:: Add proximity test to determine how close humans are in environment??
+        for human in humans:
+            min_dist_cost = 0
+            for pnt in points:
+                dist_cost = 0
+                for i in constants.POINTS:
+                    if i in human.current_pose.keys() and i in pnt.keys():
+                        dist_cost += (human.current_pose[i][0] - pnt[i][0]) + (human.current_pose[i][1] - pnt[i][1])
+                    elif(i not in human.current_pose.keys() and i not in pnt.keys()):
+                        dist_cost += 0
+                    else:
+                        dist_cost += .1
+                if min_dist_cost == 0 or min_dist_cost > dist_cost:
+                    min_dist_cost = dist_cost
+                    human.current_pose = pnt
+        return humans
