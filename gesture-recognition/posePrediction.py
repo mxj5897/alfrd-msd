@@ -90,7 +90,6 @@ class Poses():
     def plot_faces(self, image, humans,image_h, image_w):
         font = cv2.FONT_HERSHEY_DUPLEX
         # image_h, image_w = image.shape[:2]
-        idens = []
         image = cv2.putText(image, "Users in Environment", (10, 30), font, 0.5, (0,0,0),1)
         y0, dt = 45, 15
         for i, human in enumerate(humans):
