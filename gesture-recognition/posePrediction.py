@@ -91,14 +91,15 @@ class Poses():
         font = cv2.FONT_HERSHEY_DUPLEX
         # image_h, image_w = image.shape[:2]
         idens = []
+        image = cv2.putText(image, "Users in Environment", (10, 30), font, 0.5, (0,0,0),1)
+        y0, dt = 45, 15
         for i, human in enumerate(humans):
             if 0 in human.current_pose.keys():
-                
+
                 head = [human.current_pose[0][0]*image_w, human.current_pose[0][1]*image_h]
                 image = cv2.putText(image, human.identity, (int(head[0]) + 6, int(head[1]) + 6), font, 1.0, (0, 255, 255), 1)
-                idens.append(human.identity)
-
-        image = cv2.putText(image, '\n'.join(idens), (0,0), font, 1.0, (0,0,0), 1)
+                y = y0 + dt * i
+                cv2.putText(image, human.identity,(10,y), font, 0.5, (0,0,0),1)
         return image
 
     def plot_pose(self, image, humans,image_h, image_w):
