@@ -46,12 +46,21 @@ class AddGesturePopUp(BoxLayout):
         #TODO:: Sanitize inputs
         self.classify.add_to_dictionary(self.temp_queue, self.ids.gestureLabel.text)
 
+    def countdown(self, image):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        for i in reversed(range(3)):
+            image = cv2.putText(image, str(i), (250, 250), font, 7, (255, 255,255), 10, cv2.LINE_AA)
+            cv2.imwrite('temp.png', image)
+            self.ids.add_source.reload()
+            cv2.waitKey(1000)
+
     def start_recording(self):
         # Determines start recording button behavior
         if self.ids.start_recording.text == "Stop Recording":
             self.ids.start_recording.text = "Start Recording"
             self.ids.start_recording.background_color = [1,1,1,1]
             self.sensor.__del__()
+            self.countdown(cv2.imread("temp.png"))
             Clock.unschedule(self.update_recording)
         else:
             self.temp_queue = []
@@ -222,7 +231,7 @@ class gestureWidget(Widget):
                     # self.humans[i].prediction = self.humans[i].classify.classify_gesture()
                     #TODO:: Add printout / popup of valid prediction
                     #TODO:: Calls to Robot.py
-                
+
             cv2.imwrite('foo.png', image)
             self.ids.image_source.reload()
 
