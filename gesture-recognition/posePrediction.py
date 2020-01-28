@@ -79,7 +79,7 @@ class Poses():
                             continue
                         ind_point[i] = [person.body_parts[i].x, person.body_parts[i].y]
 
-                points.append(ind_point)
+                    points.append(ind_point)
                 return points
             else:
                 return None
@@ -143,6 +143,7 @@ class Poses():
             human = Humans()
             human.identity = "Unknown"
             human.current_pose = person
+            human.classify.update_dictionary()
 
             for i in [0,15,16]:
                 if i not in person.keys():
