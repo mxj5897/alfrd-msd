@@ -8,6 +8,7 @@
 FACE_DATASET_PATH = 'dataset/'
 # Saved location for embedding information
 FACE_ENCODINGS_PATH = 'encodings.npy'
+AVG_IMG_NUM_PER_USER = 15
 # Saved location for the names of users corresponding to user information
 FACE_NAMES_PATH = 'names.npy'
 # Variables related to Remote Server option. If REMOTE SERVER is true, the terminal running the main application, is not

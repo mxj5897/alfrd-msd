@@ -72,6 +72,17 @@ class faceRecognition():
         except:
             face_logger.error('Could not create facial encodings. Check to ensure face dataset is in the correct location')
 
+    def find_faces(self, image):
+        try:
+            small_frame = cv2.resize(image, (0, 0), fx=0.25, fy=0.25)
+            small_frame = small_frame[:, :, ::-1]
+            face_locations = face_recognition.face_locations(small_frame)
+
+            return face_locations
+        except:
+            face_logger.error('Error in facial identification process')
+        return None
+
     def identify_faces(self, image):
         # finds and returns all faces in an image with identities
         try:

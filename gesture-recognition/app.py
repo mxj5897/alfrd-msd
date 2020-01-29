@@ -37,6 +37,64 @@ from kivy.animation import Animation
 from kivy.properties import StringProperty, NumericProperty
 
 
+class AutoCaptureFacesPopup(BoxLayout):
+    def __init__(self, **kwargs):
+        super(AutoCaptureFacesPopup, self).__init__(**kwargs)
+        self.faces = faceRecognition()
+        self.sensor = Sensors()
+        self.sensor_method = None
+        self.img_count = 0
+        self.skip = True
+        
+    def start_recording(self):
+        if self.ids.start_recording.text == "Stop Recording":
+            self.ids.start_recording.text = "Start Recording"
+            self.ids.start_recording.background_color = [1,1,1,1]
+            self.sensor.__del__()
+            if os.path.isfile('addUser.png'):
+                os.remove('addUser.png')
+            shutil.copy('addUser1.png', 'temp.png')
+            self.ids.add_source.reload()
+            Clock.unschedule(self.update_recording)
+        else:
+            self.ids.start_recording.text = "Stop Recording"
+            self.ids.start_recording.background_color = [0,1,1,1]
+            if self.ids.addUserLabel.text == "":
+                return
+            if not os.path.exists('data/'+self.ids.addUserLabel.text):
+                os.makedirs('data/'+self.ids.addUserLabel.text)
+            if self.sensor_method is None:
+                self.sensor_method = self.sensor.get_method()
+
+            if self.sensor_method is not None:
+                Clock.schedule_interval(self.autoCaptureFace, 0.1)
+            else:
+                self.dismiss()
+                # Display popup message
+
+    def autoCaptureFace(self, btn):
+        if self.img_count >= constants.AVG_IMG_NUM_PER_USER:
+            self.ids.start_recording.background_color = [1,1,1,1]
+            if os.path.isfile('addUser.png'):
+                os.remove('addUser.png')
+            self.faces.make_dataset_embeddings()
+            return False
+
+        image = self.sensor.get_sensor_information(self.sensor_method)
+
+        if image is not None and self.skip:
+            face_locations = self.faces.find_faces(image)
+            face_names = ['Unknown'] * len(face_locations)
+            disp = self.faces.draw_faces(image, face_locations, face_names)
+
+            if face_locations is not None:
+                cv2.imwrite('./data/'+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', image)
+                self.img_count += 1
+               
+            cv2.imwrite('addUser.png', disp)
+            self.ids.addUser.reload()
+        self.skip = not self.skip
+
 class AddGesturePopUp(BoxLayout):
     def __init__( self, **kwargs ):
         super(AddGesturePopUp, self).__init__(**kwargs)
@@ -59,7 +117,7 @@ class AddGesturePopUp(BoxLayout):
             self.Count = self.Count - 1
             image = cv2.imread('temp1.png')
             height, width = image.shape[:2]
-            image = cv2.putText(image, str(self.Count), (int(width/2)-20, int(height/2)), font, 7, (22, 22,205), 10, cv2.LINE_AA)
+            image = cv2.putText(image, str(self.Count), (int(width/2)-30, int(height/2)), font, 7, (22, 22,205), 10, cv2.LINE_AA)
             cv2.imwrite('temp.png', image)
             self.ids.add_source.reload()
         else:
@@ -126,14 +184,15 @@ class SettingsPopUp(BoxLayout):
         self.classify = Classify()
         self.gesture = None
         self.index = 0
+        self.skip = True
         self.sensor_method = None
+        self.faceCount = 0
 
     def makeFaceEmbeddings(self):
         # Creates facial embeddings from ./dataset
         self.disabled = True
         self.faces.make_dataset_embeddings()
         self.disabled = False
-        self.closePopup()
 
     def displayHelp(self):
         # Displays popup of the help page using help.txt file
@@ -149,6 +208,11 @@ class SettingsPopUp(BoxLayout):
         scroll.add_widget(box)
 
         self.popup1 = Popup(title='Help Menu', content=scroll, size_hint=(.8,.8))
+        self.popup1.open()
+
+    def autoFaceEmbeddings(self):
+        box = AutoCaptureFacesPopup()
+        self.popup1 = Popup(title='Add Gesture', content=box, size_hint=(.8,.8))
         self.popup1.open()
 
     def gestureList(self):
@@ -176,10 +240,6 @@ class SettingsPopUp(BoxLayout):
             self.popup1.open()
         else:
             print("Please add gesture to dictionary")
-
-    # def switchSensor(self, btn):
-    #     # Switches sensor
-    #     self.sensor_method = self.sensor.switch_method(self.sensor_method)
 
     def playBackGesture(self, btn):
         # Gets gesture from dictionary and schedules dictionary function
