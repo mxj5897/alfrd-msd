@@ -8,8 +8,10 @@ import cv2
 import os
 import csv
 import time
+import ast
 import shutil
 import constants
+import numpy as np
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
@@ -49,7 +51,7 @@ class AddGesturePopUp(BoxLayout):
     def addGesture(self):
         # Determines save gesture button behavior
         #TODO:: Sanitize inputs
-        self.classify.add_to_dictionary(self.temp_queue, self.ids.gestureLabel.text)
+        self.classify.add_to_dictionary([self.temp_queue], self.ids.gestureLabel.text)
 
     def set_count(self, btn):
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -122,7 +124,8 @@ class SettingsPopUp(BoxLayout):
         self.faces = faceRecognition()
         self.sensor = Sensors()
         self.classify = Classify()
-        #self.aux_info = False
+        self.gesture = None
+        self.index = 0
         self.sensor_method = None
 
     def makeFaceEmbeddings(self):
@@ -151,27 +154,81 @@ class SettingsPopUp(BoxLayout):
     def gestureList(self):
         # Displays popup of the list of available gestures from
         # dictionary_labels.csv file
-        box = GridLayout(cols=2)
-        with open('dictionary_labels.csv') as csvfile:
-            reader = csv.reader(csvfile)
-            for row in reader:
-                print(row[0])
-                text_box = Label(text=row[0])
-                box.add_widget(text_box)
+        if os.path.isfile('dictionary_labels.csv'):
+            box = GridLayout(cols=2)
+            with open('dictionary_labels.csv') as csvfile:
+                reader = csv.reader(csvfile)
+                for i, row in enumerate(reader):
+                    text_box = Label(text=row[0])
+                    box.add_widget(text_box)
+                    play_btn = Button(text='Play', bold=True, id=str(i))
+                    play_btn.bind(on_press=self.playBackGesture)
+                    box.add_widget(play_btn)
 
-        clear_btn = Button(text='Clear', bold=True)
-        clear_btn.bind(on_press=self.classify.clear_dictionary)
-        box.add_widget(clear_btn)
-        close_btn = Button(text='Close', bold=True)
-        close_btn.bind(on_press=self.closePopup1)
-        box.add_widget(close_btn)
+            clear_btn = Button(text='Clear', bold=True)
+            clear_btn.bind(on_press=self.classify.clear_dictionary)
+            box.add_widget(clear_btn)
+            close_btn = Button(text='Close', bold=True)
+            close_btn.bind(on_press=self.closePopup1)
+            box.add_widget(close_btn)
 
-        self.popup1 = Popup(title='Gesture List', content=box, size_hint=(.6,.4))
-        self.popup1.open()
+            self.popup1 = Popup(title='Gesture List', content=box, size_hint=(.6,.4))
+            self.popup1.open()
+        else:
+            print("Please add gesture to dictionary")
 
     # def switchSensor(self, btn):
     #     # Switches sensor
     #     self.sensor_method = self.sensor.switch_method(self.sensor_method)
+
+    def playBackGesture(self, btn):
+        # Gets gesture from dictionary and schedules dictionary function
+        if not os.path.isfile('dictionary_gestures.csv'):
+            return
+
+        with open('dictionary_gestures.csv') as file:
+            reader = csv.reader(file, delimiter=';')
+            self.gesture=[row for idx, row in enumerate(reader) if idx == int(btn.id)]
+            self.gesture = ast.literal_eval(self.gesture[0][0])
+
+        # Open popup
+        blank_image = np.zeros((480,480,3), np.uint8)
+        cv2.imwrite('playback.png', blank_image)
+
+        box = BoxLayout(orientation='vertical')
+        self.Img = Image(id='playback', source='playback.png')
+        box.add_widget(self.Img)
+        self.popup2 = Popup(title='Playback Gesture', content=box,size_hint=(.8,.8))
+        self.popup2.open()
+
+        # Play Video
+        Clock.schedule_interval(self.replay_gestures, .5)
+
+    def replay_gestures(self, btn):
+        # Loops and replays gesture (Revise)
+        centers = {}
+        if self.index <= (len(self.gesture)-2):
+            image = np.zeros((480,480,3), np.uint8)
+            for i in range(18):
+                if i not in self.gesture[self.index][0].keys():
+                    continue
+                center = (int(self.gesture[self.index][0][i][0]*480), int(self.gesture[self.index][0][i][1]*480))
+                centers[i] = center
+                image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
+
+            for pair in constants.PairsRender:
+                if pair[0] not in self.gesture[self.index][0].keys() or pair[1] not in self.gesture[self.index][0].keys():
+                    continue
+
+                image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
+            cv2.imwrite('playback.png', image)
+
+            self.Img.reload()
+            self.index += 1
+        else:
+            self.index = 0
+            self.popup2.dismiss()
+            return False
 
     def displayInfo(self):
         # Displays pose information
