@@ -14,6 +14,31 @@ gestureWidget:
             id: error_message
             text: "Error Message"
 
+<AutoCaptureFacesPopup>:
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint: [1, .80]
+            Image:
+                id: addUser
+                source: 'addUser.png'
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint: [1, .20]
+            GridLayout:
+                cols: 3
+                Label:
+                    text: 'User Name'
+                    bold: True
+                TextInput:
+                    id: addUserLabel
+                Button:
+                    id: start_recording
+                    text: 'Start Recording'
+                    bold: True
+                    on_press: root.start_recording()
+
 <AddGesturePopUp>:
     BoxLayout:
         orientation: 'vertical'
@@ -43,7 +68,7 @@ gestureWidget:
                     text: 'Save'
                     bold: True
                     on_press: root.addGesture()
-    
+
 
 <SettingsPopUp>:
     GridLayout:
@@ -55,7 +80,7 @@ gestureWidget:
         Button:
             text: 'Add Users Automatic'
             id: auto_add_users
-            on_press: root.makeFaceEmbeddings()
+            on_press: root.autoFaceEmbeddings()
             bold: True
         Button:
             text: 'Display Auxilary Info: False'
