@@ -7,6 +7,7 @@
 import cv2
 import os
 import csv
+import time
 import shutil
 import constants
 from faceRecognition import faceRecognition
@@ -30,6 +31,9 @@ from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
+from kivy.animation import Animation
+from kivy.properties import StringProperty, NumericProperty
+
 
 class AddGesturePopUp(BoxLayout):
     def __init__( self, **kwargs ):
@@ -38,6 +42,7 @@ class AddGesturePopUp(BoxLayout):
         self.classify = Classify()
         self.sensor = Sensors()
         self.temp_queue = []
+        self.Count = 6
         self.sensor_method = None
         self.pose_model = None
 
@@ -46,12 +51,29 @@ class AddGesturePopUp(BoxLayout):
         #TODO:: Sanitize inputs
         self.classify.add_to_dictionary(self.temp_queue, self.ids.gestureLabel.text)
 
+    def set_count(self, btn):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        if self.Count > 0:
+            self.Count = self.Count - 1
+            image = cv2.imread('temp1.png')
+            height, width = image.shape[:2]
+            image = cv2.putText(image, str(self.Count), (int(width/2)-20, int(height/2)), font, 7, (22, 22,205), 10, cv2.LINE_AA)
+            cv2.imwrite('temp.png', image)
+            self.ids.add_source.reload()
+        else:
+            Clock.schedule_interval(self.update_recording, 0.1)
+            return False
+
     def start_recording(self):
         # Determines start recording button behavior
         if self.ids.start_recording.text == "Stop Recording":
             self.ids.start_recording.text = "Start Recording"
             self.ids.start_recording.background_color = [1,1,1,1]
             self.sensor.__del__()
+            if os.path.isfile('temp.png'):
+                os.remove('temp.png')
+            shutil.copy('temp1.png', 'temp.png')
+            self.ids.add_source.reload()
             Clock.unschedule(self.update_recording)
         else:
             self.temp_queue = []
@@ -62,7 +84,7 @@ class AddGesturePopUp(BoxLayout):
                 self.sensor_method = self.sensor.get_method()
 
             if self.sensor_method is not None:
-                Clock.schedule_interval(self.update_recording, 0.1)
+                Clock.schedule_interval(self.set_count, 1)
             else:
                 self.dismiss()
 
@@ -179,7 +201,7 @@ class gestureWidget(Widget):
         self.classify = Classify()
         self.pose_model = self.pose.get_model()
         self.humans_in_environment = 0
-        self.sensor_method = self.sensor.get_method()
+        self.sensor_method = None #self.sensor.get_method()
         self.aux_info = False
         self.humans = []
         self.settings = SettingsPopUp()
@@ -222,7 +244,7 @@ class gestureWidget(Widget):
                     # self.humans[i].prediction = self.humans[i].classify.classify_gesture()
                     #TODO:: Add printout / popup of valid prediction
                     #TODO:: Calls to Robot.py
-                
+
             cv2.imwrite('foo.png', image)
             self.ids.image_source.reload()
 
