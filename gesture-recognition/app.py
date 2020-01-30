@@ -12,6 +12,7 @@ import ast
 import shutil
 import constants
 import numpy as np
+import tkinter as tk
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
@@ -26,7 +27,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.widget import  Widget
+from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.uix.image import Image
 from kivy.uix.popup import Popup
@@ -365,8 +366,19 @@ class gestureWidget(Widget):
             cv2.imwrite('foo.png', image)
             self.ids.image_source.reload()
 
+
     def playPause(self):
         # Defines behavior for play / pause button
+
+        errorBox = ErrorPopup()
+        # box.add_widget(Label(text='Could not find available sensor.'))
+
+        # box.add_widget(Button(text='Dismiss', size_hint=(0.8, 0.2,), pos_hint())
+
+        # errorPopup = Popup(title='Error Message', content=ErrorPopup(), size_hint=(None, None), size=(600, 600))
+        errorBox.open()
+        print("Could not find available sensor")
+
         if self.ids.status.text == "Stop":
             self.ids.status.text = "Play"
             self.ids.status.background_color = [1,1,1,1]
@@ -382,6 +394,13 @@ class gestureWidget(Widget):
                 Clock.schedule_interval(self.update, 0.1)
             else:
                 #TODO:: Write popup for error message
+                errorBox = ErrorPopup()
+                # box.add_widget(Label(text='Could not find available sensor.'))
+
+                # box.add_widget(Button(text='Dismiss', size_hint=(0.8, 0.2,), pos_hint())
+
+                # errorPopup = Popup(title='Error Message', content=ErrorPopup(), size_hint=(None, None), size=(600, 600))
+                errorBox.open()
                 print("Could not find available sensor")
 
     def close(self):
@@ -400,10 +419,17 @@ class gestureWidget(Widget):
         self.popup = Popup(title='Add Gesture', content=addGesture, size_hint=(.6, .6))
         self.popup.open()
 
-
 class gestureApp(App):
     def build(self):
         return gestureWidget()
+
+class errorWidget(Widget):
+    pass
+#
+class ErrorPopup(Popup):
+    def build(self):
+        return errorWidget()
+
 
 if __name__ =='__main__':
     gestureApp().run()
