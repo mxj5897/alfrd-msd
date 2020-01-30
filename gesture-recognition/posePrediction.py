@@ -69,16 +69,14 @@ class Poses():
             people = model.inference(image, resize_to_default=(self.w > 0 and self.h > 0),
                                  upsample_size=constants.RESIZE_OUT_OPTION)
             points = []
-            ind_point = {}
-
             if people is not None:
                 for person in people:
-
+                    ind_point = dict.fromkeys(constants.POINTS)
                     for i in constants.POINTS:
                         if i not in person.body_parts.keys():
+                            ind_point[i] = [0,0]
                             continue
                         ind_point[i] = [person.body_parts[i].x, person.body_parts[i].y]
-
                     points.append(ind_point)
                 return points
             else:
@@ -89,7 +87,7 @@ class Poses():
 
     def plot_faces(self, image, humans,image_h, image_w):
         font = cv2.FONT_HERSHEY_DUPLEX
-        # image_h, image_w = image.shape[:2]
+
         image = cv2.putText(image, "Users in Environment", (10, 30), font, 0.5, (0,0,0),1)
         y0, dt = 45, 15
         for i, human in enumerate(humans):
@@ -109,22 +107,19 @@ class Poses():
                 return None
             if humans is None:
                 return image
-
-            # image_h, image_w = image.shape[:2]
-
+            
             centers = {}
             for human in humans:
                 #draw points
-                for i in range(18):
-                    if i not in human.current_pose.keys():
+                for i in constants.POINTS:
+                    if human.current_pose[i] == [0,0]:
                         continue
-
                     center = (int(human.current_pose[i][0]*image_w+0.5), int(human.current_pose[i][1]*image_h+0.5))
                     centers[i] = center
                     image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
 
                 for pair in self.PairsRender:
-                    if pair[0] not in human.current_pose.keys() or pair[1] not in human.current_pose.keys():
+                    if pair[0] not in centers.keys() or pair[1] not in centers.keys():
                         continue
 
                     image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
@@ -145,9 +140,8 @@ class Poses():
             human = Humans()
             human.identity = "Unknown"
             human.current_pose = person
-            human.classify.update_dictionary()
 
-            for i in [0,15,16]:
+            for i in [0,15,16]: # the points on the skeleton corresponding to the face
                 if i not in person.keys():
                     continue
 

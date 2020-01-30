@@ -109,7 +109,7 @@ class AddGesturePopUp(BoxLayout):
     def addGesture(self):
         # Determines save gesture button behavior
         #TODO:: Sanitize inputs
-        self.classify.add_to_dictionary([self.temp_queue], self.ids.gestureLabel.text)
+        self.classify.add_to_dictionary(self.temp_queue, self.ids.gestureLabel.text)
 
     def set_count(self, btn):
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -269,15 +269,15 @@ class SettingsPopUp(BoxLayout):
         centers = {}
         if self.index <= (len(self.gesture)-2):
             image = np.zeros((480,480,3), np.uint8)
-            for i in range(18):
-                if i not in self.gesture[self.index][0].keys():
+            for i in constants.POINTS:
+                if self.gesture[self.index][0][i] == [0,0]:
                     continue
                 center = (int(self.gesture[self.index][0][i][0]*480), int(self.gesture[self.index][0][i][1]*480))
                 centers[i] = center
                 image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
 
             for pair in constants.PairsRender:
-                if pair[0] not in self.gesture[self.index][0].keys() or pair[1] not in self.gesture[self.index][0].keys():
+                if pair[0] not in centers.keys() or pair[1] not in centers.keys():
                     continue
 
                 image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
@@ -331,13 +331,11 @@ class gestureWidget(Widget):
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
         image = self.sensor.get_sensor_information(self.sensor_method)
-
         if image is not None:
             points = self.pose.get_points(self.pose_model,image)
-
             if points is not None:
                 im_height, im_width = image.shape[:2]
-
+                
                 # Get identities if change in the number of humans (points) frame
                 if self.humans_in_environment != len(points):
                    face_locations, face_names = self.faces.identify_faces(image)
@@ -354,11 +352,15 @@ class gestureWidget(Widget):
 
                 # Update each respective queue and classify gestures
                 for human in self.humans:
-                    if human.identity == "Unknown":
-                         continue
+                    # if human.identity == "Unknown":
+                    #      continue
 
-                    human.classify.add_to_queue(human.current_pose.items())
-                    # self.humans[i].prediction = self.humans[i].classify.classify_gesture()
+                    gesture = np.array(list(human.current_pose.items()))
+                    gesture = [gest[1] for gest in gesture]
+                    human.classify.add_to_queue(gesture)
+
+#                    human.prediction = human.classify.classify_gesture()
+                    # print(human.prediction)
                     #TODO:: Add printout / popup of valid prediction
                     #TODO:: Calls to Robot.py
 
@@ -371,6 +373,7 @@ class gestureWidget(Widget):
             self.ids.status.text = "Play"
             self.ids.status.background_color = [1,1,1,1]
             self.sensor.__del__()
+            self.sensor_method = None
             Clock.unschedule(self.update)
         else:
             self.ids.status.text = "Stop"

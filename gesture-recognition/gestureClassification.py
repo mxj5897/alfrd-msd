@@ -10,8 +10,8 @@ import constants
 import logging
 import os
 import csv
+import ast
 from fastdtw import fastdtw
-import pandas as pd
 import numpy as np
 
 
@@ -40,15 +40,26 @@ class Classify():
 
     def read_in_file(self, path):
         # Load in csv files
-        file_df = pd.read_csv(path)
-        file_array = file_df.to_numpy()
-        file_array = np.nan_to_num(file_array)
-
-        return file_array
+        with open(path) as file:
+            reader = csv.reader(file, delimiter=';')
+            file_array = [row for row in reader]
+            if path == 'dictionary_labels.csv':
+                return file_array
+        file_array = [ast.literal_eval(fil_arr[0]) for fil_arr in file_array]
+        array = []
+        for arr in file_array:
+            temp_arr = []
+            for i in range(15):
+                temp = np.array(list(arr[i][0].items()))
+                temp = [tp[1] for tp in temp]
+                temp_arr.append(temp)
+            array.append(temp_arr)
+        return array
 
     def update_dictionary(self):
         # Upload the contents of the csv files into memory
         try:
+            print("dldldl===================================================")
             self.dictionary_gestures = self.read_in_file('dictionary_gestures.csv')
             self.dictionary_labels = self.read_in_file('dictionary_labels.csv')
         except:
@@ -68,12 +79,10 @@ class Classify():
         try:
             with open('./dictionary_gestures.csv', 'a') as g_file:
                 g_writer = csv.writer(g_file, delimiter=';')
-                g_writer.writerow(gesture)
+                g_writer.writerow([gesture])
             with open('./dictionary_labels.csv', 'a') as l_file:
                 l_writer = csv.writer(l_file, delimiter=';')
                 l_writer.writerow([label])
-                print(label)
-            self.update_dictionary()
         except:
             classification_logger.warning('Could not add element to dictionary')
 
@@ -83,7 +92,7 @@ class Classify():
         try:
             if len(self.gesture_queue) >= constants.QUEUE_MAX_SIZE:
                 self.delete_from_queue()
-            self.gesture_queue.append([item])
+            self.gesture_queue.append(item)
         except:
             classification_logger.warning("Could not add element to the gesture queue")
 
@@ -99,12 +108,17 @@ class Classify():
         try:
             prediction = 'Unkonwn'
             best_distance = -1
+
             if self.dictionary_gestures is None and self.dictionary_labels is None:
                 self.update_dictionary()
 
+            print(np.shape(self.dictionary_gestures))
             for pred, gesture in zip(self.dictionary_labels, self.dictionary_gestures):
+                print("Here")
+                print(np.shape(self.gesture_queue))
+                print(np.shape(gesture))
                 distance, path = fastdtw(self.gesture_queue, gesture)
-
+                print(distance)
                 if best_distance < distance or best_distance == -1:
                     best_distance = distance
                     prediction = pred
