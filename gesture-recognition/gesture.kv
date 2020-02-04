@@ -7,12 +7,15 @@ gestureWidget:
             size: self.width, self.height
             pos: self.x, self.y
 
-<ErrorPopup>:
+<MessagePopup>:
     BoxLayout:
         orientation: 'vertical'
         Label:
-            id: error_message
-            text: "Error Message"
+            id: system_message
+            text: root.message_text
+        Button:
+            text: "Dismiss"
+            on_press: root.dismiss()
 
 <AutoCaptureFacesPopup>:
     BoxLayout:
