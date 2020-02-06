@@ -16,6 +16,8 @@ import tkinter as tk
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
+from kivy.core.window import Window
+
 from gestureClassification import Classify
 from kivy.config import Config
 
@@ -175,6 +177,19 @@ class AddGesturePopUp(BoxLayout):
             cv2.imwrite('temp.png', image)
             self.ids.add_source.reload()
 
+class helpMenu(ScrollView):
+    text = StringProperty('')
+
+class ErrorPopup(Popup):
+    # Defines Windows Popup
+    errorMess = StringProperty()
+
+    def __init__(self, stri, **kwargs):
+        super(ErrorPopup, self).__init__(**kwargs)
+        self.errorMess = stri
+
+    def build(self):
+        return ErrorPopup
 
 class SettingsPopUp(BoxLayout):
     # Defines Windows Popup
@@ -199,15 +214,8 @@ class SettingsPopUp(BoxLayout):
         # Displays popup of the help page using help.txt file
         with open('./helpPage.txt', 'r') as file:
             helpInfo = file.read()
-        scroll = ScrollView()
-        box = GridLayout(cols=1)
-        label = Label(text=helpInfo)
-        box.add_widget(label)
-        cancel_btn = Button(text='Close', bold=True, size_hint=(1,.2))
-        cancel_btn.bind(on_press=self.closePopup1)
-        box.add_widget(cancel_btn)
-        scroll.add_widget(box)
 
+        scroll = helpMenu(text=helpInfo)
         self.popup1 = Popup(title='Help Menu', content=scroll, size_hint=(.8,.8))
         self.popup1.open()
 
@@ -373,11 +381,11 @@ class gestureWidget(Widget):
     def playPause(self):
         # Defines behavior for play / pause button
 
-
         # Troubleshooting the Popup Message (Delete 3 lines below once it works on Jim's PC)
         # MessageBox = MessagePopup(str("Prediction is: "))
         # MessageBox.open()
         # print("Could not find available sensor")
+
 
         if self.ids.status.text == "Stop":
             self.ids.status.text = "Play"
