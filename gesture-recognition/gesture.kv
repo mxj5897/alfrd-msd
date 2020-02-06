@@ -7,12 +7,19 @@ gestureWidget:
             size: self.width, self.height
             pos: self.x, self.y
 
+<HelpMenu>:
+    Label:
+        size_hint_y: None
+        height: self.texture_size[1]
+        text_size: self.width, None
+        text: root.text
+
 <ErrorPopup>:
     BoxLayout:
         orientation: 'vertical'
         Label:
             id: error_message
-            text: "Error Message"
+            text: root.errorMess
 
 <AutoCaptureFacesPopup>:
     BoxLayout:
