@@ -355,11 +355,9 @@ class gestureWidget(Widget):
                     # if human.identity == "Unknown":
                     #      continue
 
-                    gesture = np.array(list(human.current_pose.items()))
-                    gesture = [gest[1] for gest in gesture]
-                    human.classify.add_to_queue(gesture)
+                    human.classify.add_to_queue(list(human.current_pose.items()))
 
-#                    human.prediction = human.classify.classify_gesture()
+                    human.prediction = human.classify.classify_gesture()
                     # print(human.prediction)
                     #TODO:: Add printout / popup of valid prediction
                     #TODO:: Calls to Robot.py

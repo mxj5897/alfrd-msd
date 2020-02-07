@@ -36,13 +36,13 @@ pose_logger.addHandler(file_handler)
 #     21: "LHeel", 22: "RBigToe", 23: "RSmallToe", 24: "RHeel", 25: "Background"}
 
 class Poses():
-
-    w,h = None, None
-    Pairs = [
-        (1, 2), (1, 5), (2, 3), (3, 4), (5, 6), (6, 7), (1, 8), (8, 9), (9, 10), (1, 11),
-        (11, 12), (12, 13), (1, 0), (0, 14), (14, 16), (0, 15), (15, 17), (2, 16), (5, 17)
-    ]  # = 19
-    PairsRender = Pairs[:-2]
+    def __init__(self):
+        self.w,self.h = None, None
+        self.Pairs = [
+            (1, 2), (1, 5), (2, 3), (3, 4), (5, 6), (6, 7), (1, 8), (8, 9), (9, 10), (1, 11),
+            (11, 12), (12, 13), (1, 0), (0, 14), (14, 16), (0, 15), (15, 17), (2, 16), (5, 17)
+        ]
+        self.PairsRender = self.Pairs[:-2]
 
     def get_model(self):
         # Returns the appropriate model used for pose detection. For realtime use "mobilenet_thin"

@@ -28,11 +28,6 @@ classification_logger.addHandler(file_handler)
 
 
 class Classify():
-    # Handles all gesutre classification tasks
-    # Has attribute gesture_queue, each unique user should have their own gesture queue,
-    # Therefore need as many instances of the class as there are users in the main script
-    gesture_queue = []
-
     def __init__(self):
         self.gesture_queue = []
         self.dictionary_labels = None
@@ -49,17 +44,16 @@ class Classify():
         array = []
         for arr in file_array:
             temp_arr = []
-            for i in range(15):
+            for i in range(constants.QUEUE_MAX_SIZE):
                 temp = np.array(list(arr[i][0].items()))
                 temp = [tp[1] for tp in temp]
-                temp_arr.append(temp)
+                temp_arr.append(self.normalize_pose(temp))
             array.append(temp_arr)
         return array
 
     def update_dictionary(self):
-        # Upload the contents of the csv files into memory
+        # Load the contents of the csv files into memory
         try:
-            print("dldldl===================================================")
             self.dictionary_gestures = self.read_in_file('dictionary_gestures.csv')
             self.dictionary_labels = self.read_in_file('dictionary_labels.csv')
         except:
@@ -92,7 +86,13 @@ class Classify():
         try:
             if len(self.gesture_queue) >= constants.QUEUE_MAX_SIZE:
                 self.delete_from_queue()
-            self.gesture_queue.append(item)
+
+            # Convert to correct format
+            item = np.array(item)
+            item = [gest[1] for gest in gesture]
+            
+            # normalize pose and add to list
+            self.gesture_queue.append(self.normalize_pose(item))
         except:
             classification_logger.warning("Could not add element to the gesture queue")
 
@@ -103,21 +103,37 @@ class Classify():
         except:
             classification_logger.warning("Could not delete element from the gesture queue")
 
+    def normalize_pose(self, gesture):
+        # Coordinate transform of the skeleton > the nose (pose[0]) is the new origin        
+        try:
+            for i in constants.POINTS:
+                pose[i] = [np.linalg.norm(np.array(pose[0][0])-np.array(pose[i][0])), np.linalg.norm(np.array(pose[0][1])-np.array(pose[i][1]))]
+            return gesture
+        except:
+            classification_logger.warning("Could not normalize pose")
+
     def classify_gesture(self):
         # Returns a prediction of the gesture based on the current contents of the queue
         try:
             prediction = 'Unkonwn'
             best_distance = -1
 
+            if len(self.gesture_queue) != constants.QUEUE_MAX_SIZE:
+                return "unknown"
+
             if self.dictionary_gestures is None and self.dictionary_labels is None:
                 self.update_dictionary()
 
-            print(np.shape(self.dictionary_gestures))
+            # Reshape gesture queue to be passed into fastdtw
+            ind2 = np.shape(np.array(self.gesture_queue))[1]
+            ind3 = np.shape(np.array(self.gesture_queue))[2]
+            queue = np.array(self.gesture_queue).reshape(constants.POINTS,ind2*ind3)
+            
+
             for pred, gesture in zip(self.dictionary_labels, self.dictionary_gestures):
-                print("Here")
-                print(np.shape(self.gesture_queue))
-                print(np.shape(gesture))
-                distance, path = fastdtw(self.gesture_queue, gesture)
+
+                gesture = np.array(gesture).reshape(constants.Points,ind2*ind3)
+                distance, path = fastdtw(queue, gesture)
                 print(distance)
                 if best_distance < distance or best_distance == -1:
                     best_distance = distance
