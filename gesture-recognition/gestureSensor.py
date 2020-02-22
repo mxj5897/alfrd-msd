@@ -27,8 +27,9 @@ sensor_logger.addHandler(file_handler)
 
 
 class Sensors():
-    video = None
-    method = "unkonwn"
+    def __init__(self):
+        self.video = None
+        self.method = "unkonwn"
 
     def get_method(self):
         # Checks to determine what sensor are availble. Returns a string listing the appropriate option

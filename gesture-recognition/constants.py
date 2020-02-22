@@ -29,3 +29,5 @@ PairsRender = Pairs[:-2]
 # Gesture Classification constants
 QUEUE_MAX_SIZE = 15
 GESTURE_THRESHOLD = 10
+# GUI Related Constants
+COUNTDOWN = 6 # Should be 1 more than desired countdown length
