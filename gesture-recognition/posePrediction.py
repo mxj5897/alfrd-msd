@@ -133,8 +133,8 @@ class Poses():
         # This function should only be called when the number of skeletons in the image changes
         # Assumes that that number of skeletons in the frame will always
         # be greater than or equal to the number of faces
-        if points == []:
-            return points
+        if points == [] or face_locations is None or face_names is None:
+            return None
         humans = []
         for person in points:
             human = Humans()
@@ -161,6 +161,9 @@ class Poses():
         # Minimizes the distance between the poses of each human between frames
         # Does not account for overlapping humans in frames
 	    #TODO:: Add proximity test to determine how close humans are in environment??
+        if points == [] or humans is None:
+            return None
+
         for human in humans:
             min_dist_cost = 0
             for pnt in points:

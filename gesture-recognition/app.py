@@ -15,10 +15,12 @@ import numpy as np
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
+from kivy.core.window import Window
+
 from gestureClassification import Classify
 from kivy.config import Config
 
-Config.set('graphics', 'resizable', 0)
+# Config.set('graphics', 'resizable', 0)
 
 from kivy.app import App
 from kivy.lang import Builder
@@ -26,7 +28,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.widget import  Widget
+from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.uix.image import Image
 from kivy.uix.popup import Popup
@@ -37,7 +39,9 @@ from kivy.animation import Animation
 from kivy.properties import StringProperty, NumericProperty
 
 
+
 class AutoCaptureFacesPopup(BoxLayout):
+    # Automatically adds users to the set of recognized users
     def __init__(self, **kwargs):
         super(AutoCaptureFacesPopup, self).__init__(**kwargs)
         self.faces = faceRecognition()
@@ -47,36 +51,48 @@ class AutoCaptureFacesPopup(BoxLayout):
         self.skip = True
         
     def start_recording(self):
+        # Starts the recording process and adds folderfor user
         if self.ids.start_recording.text == "Stop Recording":
             self.ids.start_recording.text = "Start Recording"
             self.ids.start_recording.background_color = [1,1,1,1]
-            self.sensor.__del__()
-            if os.path.isfile('addUser.png'):
-                os.remove('addUser.png')
-            shutil.copy('addUser1.png', 'temp.png')
-            self.ids.add_source.reload()
+            self.sensor.__del__() # releases camera / kinect
+            
+            # Unschedule update function
             Clock.unschedule(self.update_recording)
         else:
+            # Set some button properties
             self.ids.start_recording.text = "Stop Recording"
+            self.ids.start_recording.disabled = True
             self.ids.start_recording.background_color = [0,1,1,1]
-            if self.ids.addUserLabel.text == "":
+            
+            if self.ids.addUserLabel.text == "": # requires user name
                 return
-            if not os.path.exists('data/'+self.ids.addUserLabel.text):
-                os.makedirs('data/'+self.ids.addUserLabel.text)
+
+            # check if there is already a folder with user images
+            if os.path.exists('data/'+self.ids.addUserLabel.text):
+                message = MessagePopup(str("User with that name already exist. \n Please enter a different name"))
+                message.open()
+                self.ids.start_recording.background_color = [1,1,1,1]
+                self.ids.start_recording.disabled = False
+                return
+
+            # creates directory to store user photos
+            os.makedirs( 'data/'+self.ids.addUserLabel.text)
+
             if self.sensor_method is None:
                 self.sensor_method = self.sensor.get_method()
 
             if self.sensor_method is not None:
                 Clock.schedule_interval(self.autoCaptureFace, 0.1)
             else:
-                self.dismiss()
-                # Display popup message
+                message = MessagePopup(str("Not connected to sensor"))
+                message.open()
 
     def autoCaptureFace(self, btn):
+        # Captures and writes facial files to disk
         if self.img_count >= constants.AVG_IMG_NUM_PER_USER:
+            self.img_count = 0
             self.ids.start_recording.background_color = [1,1,1,1]
-            if os.path.isfile('addUser.png'):
-                os.remove('addUser.png')
             self.faces.make_dataset_embeddings()
             return False
 
@@ -84,44 +100,48 @@ class AutoCaptureFacesPopup(BoxLayout):
 
         if image is not None and self.skip:
             face_locations = self.faces.find_faces(image)
-            face_names = ['Unknown'] * len(face_locations)
+            face_names = ['Unknown'] * len(face_locations) # required for draw_faces function
             disp = self.faces.draw_faces(image, face_locations, face_names)
 
             if face_locations is not None:
-                cv2.imwrite('./data/'+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', image)
+                cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', image)
                 self.img_count += 1
                
-            cv2.imwrite('addUser.png', disp)
+            cv2.imwrite( 'addUser.png', disp)
             self.ids.addUser.reload()
         self.skip = not self.skip
 
+
 class AddGesturePopUp(BoxLayout):
+    # Adds gesture to gesture dictionary
     def __init__( self, **kwargs ):
         super(AddGesturePopUp, self).__init__(**kwargs)
         self.pose = Poses()
         self.classify = Classify()
         self.sensor = Sensors()
         self.temp_queue = []
-        self.Count = 6
+        self.Count = constants.COUNTDOWN
         self.sensor_method = None
         self.pose_model = None
 
     def addGesture(self):
         # Determines save gesture button behavior
         #TODO:: Sanitize inputs
-        self.classify.add_to_dictionary(self.temp_queue, self.ids.gestureLabel.text)
+        self.classify.add_to_dictionary([self.temp_queue], self.ids.gestureLabel.text)
 
     def set_count(self, btn):
+        # Sets and displays the countdown
         font = cv2.FONT_HERSHEY_SIMPLEX
         if self.Count > 0:
             self.Count = self.Count - 1
             image = cv2.imread('temp1.png')
             height, width = image.shape[:2]
             image = cv2.putText(image, str(self.Count), (int(width/2)-30, int(height/2)), font, 7, (22, 22,205), 10, cv2.LINE_AA)
-            cv2.imwrite('temp.png', image)
+            cv2.imwrite( 'temp.png', image)
             self.ids.add_source.reload()
         else:
             Clock.schedule_interval(self.update_recording, 0.1)
+            self.Count = constants.COUNTDOWN
             return False
 
     def start_recording(self):
@@ -130,32 +150,31 @@ class AddGesturePopUp(BoxLayout):
             self.ids.start_recording.text = "Start Recording"
             self.ids.start_recording.background_color = [1,1,1,1]
             self.sensor.__del__()
-            if os.path.isfile('temp.png'):
-                os.remove('temp.png')
-            shutil.copy('temp1.png', 'temp.png')
             self.ids.add_source.reload()
             Clock.unschedule(self.update_recording)
         else:
             self.temp_queue = []
             self.ids.start_recording.text = "Stop Recording"
+            self.ids.start_recording.disabled = True
             self.ids.start_recording.background_color = [0,1,1,1]
             self.pose_model = self.pose.get_model()
+
             if self.sensor_method is None:
                 self.sensor_method = self.sensor.get_method()
-
             if self.sensor_method is not None:
                 Clock.schedule_interval(self.set_count, 1)
             else:
-                self.dismiss()
+                message = MessagePopup(str("Not connected to the sensor"))
+                message.open()
+                self.ids.start_recording.disabled = False
+                self.ids.start_recording.background_color = [1,1,1,1]
 
     def update_recording(self, btn):
         # Main loop for the adding gesture
         # Determines key points and saves them to the temp queue
         if len(self.temp_queue) >= constants.QUEUE_MAX_SIZE:
             self.ids.start_recording.background_color = [1,1,1,1]
-            if os.path.isfile('temp.png'):
-                os.remove('temp.png')
-            shutil.copy('temp1.png', 'temp.png')
+            self.ids.start_recording.disabled = False
             return False
 
         image = self.sensor.get_sensor_information(self.sensor_method)
@@ -165,15 +184,29 @@ class AddGesturePopUp(BoxLayout):
             points = self.pose.get_points(self.pose_model,image)
 
             # plot points for user feedback
-            humans = self.pose.assign_face_to_pose(points, [], [])
+            humans = self.pose.assign_face_to_pose(points, [], [], im_height, im_width)
             image = self.pose.plot_pose(image,humans, im_height, im_width)
 
             if points is not None:
                 self.temp_queue.append(points)
 
-            cv2.imwrite('temp.png', image)
+            cv2.imwrite( 'temp.png', image)
             self.ids.add_source.reload()
 
+class helpMenu(ScrollView):
+    # Defines help menu
+    text = StringProperty('')
+
+class MessagePopup(Popup):
+    # Defines Windows Popup
+    errorMess = StringProperty()
+
+    def __init__(self, stri, **kwargs):
+        super(MessagePopup, self).__init__(**kwargs)
+        self.errorMess = stri
+
+    def build(self):
+        return MessagePopup
 
 class SettingsPopUp(BoxLayout):
     # Defines Windows Popup
@@ -196,17 +229,10 @@ class SettingsPopUp(BoxLayout):
 
     def displayHelp(self):
         # Displays popup of the help page using help.txt file
-        with open('./helpPage.txt', 'r') as file:
+        with open( 'helpPage.txt', 'r') as file:
             helpInfo = file.read()
-        scroll = ScrollView()
-        box = GridLayout(cols=1)
-        label = Label(text=helpInfo)
-        box.add_widget(label)
-        cancel_btn = Button(text='Close', bold=True, size_hint=(1,.2))
-        cancel_btn.bind(on_press=self.closePopup1)
-        box.add_widget(cancel_btn)
-        scroll.add_widget(box)
 
+        scroll = helpMenu(text=helpInfo)
         self.popup1 = Popup(title='Help Menu', content=scroll, size_hint=(.8,.8))
         self.popup1.open()
 
@@ -216,11 +242,11 @@ class SettingsPopUp(BoxLayout):
         self.popup1.open()
 
     def gestureList(self):
-        # Displays popup of the list of available gestures from
-        # dictionary_labels.csv file
-        if os.path.isfile('dictionary_labels.csv'):
+        # Displays popup of the list of available gestures from dictionary_labels.csv file
+        # Dynamic widget defined in python not kv
+        if os.path.isfile( 'dictionary_labels.csv'):
             box = GridLayout(cols=2)
-            with open('dictionary_labels.csv') as csvfile:
+            with open( 'dictionary_labels.csv') as csvfile:
                 reader = csv.reader(csvfile)
                 for i, row in enumerate(reader):
                     text_box = Label(text=row[0])
@@ -229,9 +255,6 @@ class SettingsPopUp(BoxLayout):
                     play_btn.bind(on_press=self.playBackGesture)
                     box.add_widget(play_btn)
 
-            clear_btn = Button(text='Clear', bold=True)
-            clear_btn.bind(on_press=self.classify.clear_dictionary)
-            box.add_widget(clear_btn)
             close_btn = Button(text='Close', bold=True)
             close_btn.bind(on_press=self.closePopup1)
             box.add_widget(close_btn)
@@ -239,21 +262,22 @@ class SettingsPopUp(BoxLayout):
             self.popup1 = Popup(title='Gesture List', content=box, size_hint=(.6,.4))
             self.popup1.open()
         else:
-            print("Please add gesture to dictionary")
+            message = MessagePopup(str("No gestures in dictionary. \n Please add gesture to dictionary"))
+            message.open()
 
     def playBackGesture(self, btn):
         # Gets gesture from dictionary and schedules dictionary function
         if not os.path.isfile('dictionary_gestures.csv'):
             return
 
-        with open('dictionary_gestures.csv') as file:
+        with open( 'dictionary_gestures.csv') as file:
             reader = csv.reader(file, delimiter=';')
             self.gesture=[row for idx, row in enumerate(reader) if idx == int(btn.id)]
             self.gesture = ast.literal_eval(self.gesture[0][0])
 
         # Open popup
         blank_image = np.zeros((480,480,3), np.uint8)
-        cv2.imwrite('playback.png', blank_image)
+        cv2.imwrite( 'playback.png', blank_image)
 
         box = BoxLayout(orientation='vertical')
         self.Img = Image(id='playback', source='playback.png')
@@ -269,19 +293,19 @@ class SettingsPopUp(BoxLayout):
         centers = {}
         if self.index <= (len(self.gesture)-2):
             image = np.zeros((480,480,3), np.uint8)
-            for i in constants.POINTS:
-                if self.gesture[self.index][0][i] == [0,0]:
+            for i in range(18):
+                if i not in self.gesture[self.index][0].keys():
                     continue
                 center = (int(self.gesture[self.index][0][i][0]*480), int(self.gesture[self.index][0][i][1]*480))
                 centers[i] = center
                 image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
 
             for pair in constants.PairsRender:
-                if pair[0] not in centers.keys() or pair[1] not in centers.keys():
+                if pair[0] not in self.gesture[self.index][0].keys() or pair[1] not in self.gesture[self.index][0].keys():
                     continue
 
                 image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
-            cv2.imwrite('playback.png', image)
+            cv2.imwrite( 'playback.png', image)
 
             self.Img.reload()
             self.index += 1
@@ -309,8 +333,6 @@ class gestureWidget(Widget):
     def __init__( self, **kwargs ):
         super(gestureWidget, self).__init__(**kwargs)
 
-        #self.ipAddress = None
-        #self.port = None
         self.play = False
         self.sensor = Sensors()
         self.pose = Poses()
@@ -323,10 +345,10 @@ class gestureWidget(Widget):
         self.humans = []
         self.settings = SettingsPopUp()
 
-        # resets image
-        if os.path.isfile('foo.png'):
-            os.remove("foo.png")
-        shutil.copy('foo1.png', 'foo.png')
+        # # resets image
+        # if os.path.isfile('foo.png'):
+        #     os.remove("foo.png")
+        # shutil.copy('foo1.png', 'foo.png')
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
@@ -344,23 +366,25 @@ class gestureWidget(Widget):
                 else:
                 # Update the poses of each individual human in frame
                     self.humans = self.pose.update_human_poses(points, self.humans)
+                
+                if self.humans is not None:
+                    # Plot user identities and (optional) poses
+                    image = self.pose.plot_faces(image, self.humans, im_height, im_width)
+                    if self.settings.ids.aux_info.text == 'Display Auxilary Info: True':
+                        image = self.pose.plot_pose(image, self.humans, im_height, im_width)
 
-                # Plot user identities and (optional) poses
-                image = self.pose.plot_faces(image, self.humans, im_height, im_width)
-                if self.settings.ids.aux_info.text == 'Display Auxilary Info: True':
-                    image = self.pose.plot_pose(image, self.humans, im_height, im_width)
+                    # Update each respective queue and classify gestures
+                    for human in self.humans:
+                        # if human.identity == "Unknown":
+                        #      continue
 
-                # Update each respective queue and classify gestures
-                for human in self.humans:
-                    # if human.identity == "Unknown":
-                    #      continue
+                        human.classify.add_to_queue(list(human.current_pose.items()))
 
-                    human.classify.add_to_queue(list(human.current_pose.items()))
-
-                    human.prediction = human.classify.classify_gesture()
-                    # print(human.prediction)
-                    #TODO:: Add printout / popup of valid prediction
-                    #TODO:: Calls to Robot.py
+                        human.prediction = human.classify.classify_gesture()
+                        # if human.prediction != "Unknown":
+                        #     message = MessagePopup(str("Prediction is" + human.prediction))
+                        #     message.open()
+                        #TODO:: Calls to Robot.py
 
             cv2.imwrite('foo.png', image)
             self.ids.image_source.reload()

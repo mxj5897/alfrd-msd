@@ -1,9 +1,96 @@
 Welcome to Alfrd: the Autonomous Gesture Recognition Robotic Assistant
 
-Setting Up
+>> Setting Up
 
-Connecting Robot
+If setting up ALFRD for the first time on a new machine, ensure that the machine is running Ubuntu version 18.04
+(Note that the GUI has not been tested for Windows or IOS operating systems.) Additionally, ensure that
+python3-dev and pip3 are installed on the system by running the following commands in a terminal window:
 
-Interfacing with the GUI
+which pip3; which python3
 
-TroubleShooting
+If the requirements are not installed, install them by running the following commands in the terminals:
+
+sudo apt-get install python3-dev
+sudo apt-get install pip3
+
+To utilize the kinect see the tutorial posted at: 
+https://naman5.wordpress.com/2014/06/24/experimenting-with-kinect-using-opencv-python-and-open-kinect-libfreenect/
+
+To utilize the pose library follow the setup procedures at:
+https://github.com/ildoonet/tf-pose-estimation
+
+* to build c++ dependencies in the /pafprocess subdirectory
+
+To install pre-requisites, open a command terminal and navigate to the main project directory.
+Create a python3 virtual environment and then activate this environment. Navigate into the 
+gesture-recognition sub-folder, and run the command:
+
+pip3 -r requirements.txt
+
+Install any additional dependencies not included in requirements.txt via:
+
+pip3 install <package-name>
+
+To test the installation of all packages run the python3 file app.py from the command window via the
+command:
+
+python3 app.py
+
+If all dependencies have been successfully installed, the GUI will be launched and the user will be
+welcomed on the landing page. See "Interfacing with the GUI for additional, steps to setup functionality"
+
+(If you see this page in the GUI, you have successfully completed this step)
+
+>> Interfacing with the GUI
+
+>>>> Basic Architecture (For more information see the design doc)
+
+The main behavior for the gesture recogntition GUI is defined in "alfrd-mds/gesture-recognition"
+App.py is the defines the behavior of the main python GUI.
+Gesture.kv is a kivy file that defines the layout of objects in the main GUI
+Helper functions placed in several appropriate python class files and are called in app.py.
+> human defines the human object which is used to encapsulate the attributes of humans in the environment (
+identity, current pose, predicted gesture, etc...)
+> robot handles all interfacing between the robot and the gesture
+> gestureClassification handles all tasks related to the gesture queue and predicting gestures
+> gestureSensor handles finding and obtaining information (pictures) from available sensors
+> faceRecognition handles the identifying faces in the environment
+> constants contains useful global constants
+> server (not implemented) allows for streaming of the app to other machines
+> posePrediction handles predicting the current pose of a user and all plotting
+
+There are also several miscellaneous files in the folder:
+> All *.png files are used for streaming purposes
+> HelpPage.txt provides additional information in regards to the system
+> data/ contains the database of available users images
+> names.npy, and encodings.npy contain the names and embeddings of users the system will currently recognize
+> dictionary_gestures.csv contains the list of gestures available for use
+> dictionary_labels.csv contains the list of gesture labels
+> gestureRecognition.log contains a log of any warnings or errors encountered by the system
+> pose/ contains the pose prediction model and helper functions for making inferences of the model
+> requirements.txt contains the complete list of all dependencies for running the project
+
+>>>> Adding Users
+
+Currently, the GUI supports two ways of adding users, "Manual", and "Automatic." To manually add users, create a
+subdirectory under "alfrd-msd/gesture/recognition/data/" with the name of the intended end user. Add
+15-20 prominately displaying the individuals face in the majority of the image. Launch the GUI via the app.py
+file. Click the settings button and then press "Add Users Manual". A popup will be displayed when the process is
+finished. If the required photos are not available, they can be captured automatically by pressing "Settings" > 
+"Add Users Automatic." This will launch a popup window that takes 15 pictures of an individual, and adds them
+to a newly created directory under the "alfrd-msd/gesture-recogntion/data/". This user will then be added to the
+list of available users, and a popup will be launched when the process is finished. (**Important** when using the
+automatic capture feature, ensure that there is only 1 individual in frame at a time.)
+
+
+>>>> Adding Gestures
+
+To add gestures to the working dictionary, launch the main app.py GUI, and click the button labelled "Add Gesture",
+a popup window will open. Enter the desired gesture name in the text box and click "Start Recording". A countdown will
+be started. When the countdown reaches 0, perform the desired gesture. If satisfied with the gesture, click "Save 
+Recording" and the gesture and label will be written to the appropriate csv files and available for use.
+
+>> TroubleShooting
+
+Post any and all issues on the github repo mxj5897/alfrd-msd. If the repo is still private, request access
+by emailing mxj5897@rit.edu.

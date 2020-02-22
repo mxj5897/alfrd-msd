@@ -7,12 +7,24 @@ gestureWidget:
             size: self.width, self.height
             pos: self.x, self.y
 
-<ErrorPopup>:
+<MessagePopup>:
+    size_hint: [.4, .4]
     BoxLayout:
         orientation: 'vertical'
         Label:
-            id: error_message
-            text: "Error Message"
+            size_hint: [1, .8]
+            id: system_message
+            text: root.errorMess
+        Button:
+            size_hint: [1, .2]
+            text: "Dismiss"
+            on_press: root.dismiss()
+<HelpMenu>:
+    Label:
+        size_hint_y: None
+        height: self.texture_size[1]
+        text_size: self.width, None
+        text: root.text
 
 <AutoCaptureFacesPopup>:
     BoxLayout:
@@ -113,6 +125,15 @@ gestureWidget:
         orientation: 'vertical'
         size: root.width, root.height / 10
         spacing: '5dp'
+        AnchorLayout:
+            anchor_y: 'top'
+            anchor_x: 'right'
+            size_hint: [1, .10]
+            Button:
+                id: face_recog
+                text: 'Update Faces'
+                bold: True
+                on_press: root.playPause()
         AnchorLayout:
             anchor_y: 'bottom'
             size_hint: [1, .10]
