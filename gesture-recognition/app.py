@@ -12,6 +12,7 @@ import ast
 import shutil
 import constants
 import numpy as np
+import tkinter as tk
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
@@ -385,12 +386,20 @@ class gestureWidget(Widget):
                         #     message = MessagePopup(str("Prediction is" + human.prediction))
                         #     message.open()
                         #TODO:: Calls to Robot.py
-
+                        
             cv2.imwrite('foo.png', image)
             self.ids.image_source.reload()
 
+
     def playPause(self):
         # Defines behavior for play / pause button
+
+
+        # Troubleshooting the Popup Message (Delete 3 lines below once it works on Jim's PC)
+        # MessageBox = MessagePopup(str("Prediction is: "))
+        # MessageBox.open()
+        # print("Could not find available sensor")
+
         if self.ids.status.text == "Stop":
             self.ids.status.text = "Play"
             self.ids.status.background_color = [1,1,1,1]
@@ -407,6 +416,8 @@ class gestureWidget(Widget):
                 Clock.schedule_interval(self.update, 0.1)
             else:
                 #TODO:: Write popup for error message
+                errorBox = MessagePopup(str("Could not find available sensor"))
+                errorBox.open()
                 print("Could not find available sensor")
 
     def close(self):
@@ -425,10 +436,41 @@ class gestureWidget(Widget):
         self.popup = Popup(title='Add Gesture', content=addGesture, size_hint=(.6, .6))
         self.popup.open()
 
-
 class gestureApp(App):
     def build(self):
         return gestureWidget()
+
+class errorWidget(Widget):
+    pass
+
+#Dynamic Message Popup - Pass in a custom text when initializing a MessagePopup object.
+class MessagePopup(Popup):
+
+    message_text = StringProperty()
+    def __init__(self, displayText, **kwargs):
+        super(MessagePopup, self).__init__(**kwargs)
+        self.message_text = displayText
+
+    def build(self):
+        return MessagePopup
+
+if __name__ =='__main__':
+    gestureApp().run()
+
+
+class errorWidget(Widget):
+    pass
+
+#Dynamic Message Popup - Pass in a custom text when initializing a MessagePopup object.
+class MessagePopup(Popup):
+
+    message_text = StringProperty()
+    def __init__(self, displayText, **kwargs):
+        super(MessagePopup, self).__init__(**kwargs)
+        self.message_text = displayText
+
+    def build(self):
+        return MessagePopup
 
 if __name__ =='__main__':
     gestureApp().run()
