@@ -12,7 +12,6 @@ import ast
 import shutil
 import constants
 import numpy as np
-import tkinter as tk
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
@@ -347,9 +346,9 @@ class gestureWidget(Widget):
         self.settings = SettingsPopUp()
 
         # # resets image
-        # if os.path.isfile('foo.png'):
-        #     os.remove("foo.png")
-        # shutil.copy('foo1.png', 'foo.png')
+        if os.path.isfile('foo.png'):
+            os.remove("foo.png")
+        shutil.copy('foo1.png', 'foo.png')
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
@@ -440,37 +439,6 @@ class gestureApp(App):
     def build(self):
         return gestureWidget()
 
-class errorWidget(Widget):
-    pass
-
-#Dynamic Message Popup - Pass in a custom text when initializing a MessagePopup object.
-class MessagePopup(Popup):
-
-    message_text = StringProperty()
-    def __init__(self, displayText, **kwargs):
-        super(MessagePopup, self).__init__(**kwargs)
-        self.message_text = displayText
-
-    def build(self):
-        return MessagePopup
-
-if __name__ =='__main__':
-    gestureApp().run()
-
-
-class errorWidget(Widget):
-    pass
-
-#Dynamic Message Popup - Pass in a custom text when initializing a MessagePopup object.
-class MessagePopup(Popup):
-
-    message_text = StringProperty()
-    def __init__(self, displayText, **kwargs):
-        super(MessagePopup, self).__init__(**kwargs)
-        self.message_text = displayText
-
-    def build(self):
-        return MessagePopup
 
 if __name__ =='__main__':
     gestureApp().run()
