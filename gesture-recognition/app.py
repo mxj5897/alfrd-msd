@@ -316,27 +316,41 @@ class SettingsPopUp(BoxLayout):
     def replay_gestures(self, btn):
         # Loops and replays gesture (Revise)
         centers = {}
+        point_ordering = {
+        0:"Nose", 1:"Neck", 2:"R. Shoulder", 3:"R. Elbow",
+        4:"R. Wrist", 5:"L. Shoulder", 6:"L. Elbow",  7:"L. Wrist",
+        15: "R. Eye",16: "L. Eye", 17: "R. Ear", 18: "L. Ear"}
+
 
         if self.index <= (len(self.gesture)-2):
-            image = np.zeros((480,480,3), np.uint8)
+            image = cv2.imread('empty_room.jpg')
+            im_h, im_w = image.shape[:2]
+
+            # Setup image
+            font = cv2.FONT_HERSHEY_DUPLEX
+            image = cv2.putText(image, 'Right', (10, 30), font, 0.5, (0,0,0), 1)
+            image = cv2.putText(image, 'Left', (im_w-50, 30), font, 0.5, (0,0,0), 1)
 
             # Plot the points
             for i in range(18):
                 if i not in self.gesture[self.index][0].keys():
                     continue
-                if int(self.gesture[self.index][0][i][0]*480) == 0 or int(self.gesture[self.index][0][i][1]*480) == 0:
+                if int(self.gesture[self.index][0][i][0]*im_w) == 0 or int(self.gesture[self.index][0][i][1]*im_w) == 0:
                     continue
-                
-                center = (int(self.gesture[self.index][0][i][0]*480), int(self.gesture[self.index][0][i][1]*480))
+                center = (int(self.gesture[self.index][0][i][0]*(im_w)), int(self.gesture[self.index][0][i][1]*(im_h)))
                 centers[i] = center
-                image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
+                image = cv2.circle(image, center, 2, (0, 0, 0), thickness=20, lineType=8, shift=0)
 
             # Plot the connections between points
             for pair in constants.PairsRender:
                 if pair[0] not in centers.keys() or pair[1] not in centers.keys():
                     continue
+                image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,0), 3)
 
-                image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
+            # Plot labels. Needs to be added last for visualization. 
+            for i in centers.keys():
+                image = cv2.putText(image, point_ordering[i], (centers[i][0]+10, centers[i][1]-10), font, 0.3, (0,0,255), 1)
+
             cv2.imwrite( 'playback.png', image)
 
             self.Img.reload()
