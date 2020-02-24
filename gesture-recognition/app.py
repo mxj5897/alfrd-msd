@@ -245,7 +245,7 @@ class SettingsPopUp(BoxLayout):
         # Displays popup of the list of available gestures from dictionary_labels.csv file
         # Dynamic widget defined in python not kv
         if os.path.isfile( 'dictionary_labels.csv'):
-            box = GridLayout(cols=2)
+            box = GridLayout(cols=3)
             with open( 'dictionary_labels.csv') as csvfile:
                 reader = csv.reader(csvfile)
                 for i, row in enumerate(reader):
@@ -254,6 +254,9 @@ class SettingsPopUp(BoxLayout):
                     play_btn = Button(text='Play', bold=True, id=str(i))
                     play_btn.bind(on_press=self.playBackGesture)
                     box.add_widget(play_btn)
+                    clear_btn = Button(text="Clear", bold=True, id="clear"+str(i))
+                    clear_btn.bind(on_press=self.clearGesture)
+                    box.add_widget(clear_btn)
 
             close_btn = Button(text='Close', bold=True)
             close_btn.bind(on_press=self.closePopup1)
@@ -265,6 +268,28 @@ class SettingsPopUp(BoxLayout):
             message = MessagePopup(str("No gestures in dictionary. \n Please add gesture to dictionary"))
             message.open()
 
+    def clearGesture(self, btn):
+        if not os.path.isfile('dictionary_gestures.csv') or not os.path.isfile('dictionary_labels.csv'):
+            return
+
+        self.clearFromCSV(btn.id[-1], 'dictionary_gestures.csv')
+        self.clearFromCSV(btn.id[-1], 'dictionary_labels.csv')
+
+        self.closePopup1(btn)
+        self.gestureList()
+
+    def clearFromCSV(self, id_val, fileName):
+        lines = list()        
+        with open(fileName, 'r') as g_file:
+            g_reader = csv.reader(g_file, delimiter=';')
+            for i,row in enumerate(g_reader):
+                if int(i) != int(id_val):
+                    lines.append(row)
+
+        with open(fileName, 'w') as writeFile:
+            writer = csv.writer(writeFile)
+            writer.writerows(lines)
+
     def playBackGesture(self, btn):
         # Gets gesture from dictionary and schedules dictionary function
         if not os.path.isfile('dictionary_gestures.csv'):
@@ -273,7 +298,7 @@ class SettingsPopUp(BoxLayout):
         with open( 'dictionary_gestures.csv') as file:
             reader = csv.reader(file, delimiter=';')
             self.gesture=[row for idx, row in enumerate(reader) if idx == int(btn.id)]
-            self.gesture = ast.literal_eval(self.gesture[0][0])
+            self.gesture = ast.literal_eval(self.gesture[0][0])[0]
 
         # Open popup
         blank_image = np.zeros((480,480,3), np.uint8)
@@ -291,17 +316,24 @@ class SettingsPopUp(BoxLayout):
     def replay_gestures(self, btn):
         # Loops and replays gesture (Revise)
         centers = {}
+
         if self.index <= (len(self.gesture)-2):
             image = np.zeros((480,480,3), np.uint8)
+
+            # Plot the points
             for i in range(18):
                 if i not in self.gesture[self.index][0].keys():
                     continue
+                if int(self.gesture[self.index][0][i][0]*480) == 0 or int(self.gesture[self.index][0][i][1]*480) == 0:
+                    continue
+                
                 center = (int(self.gesture[self.index][0][i][0]*480), int(self.gesture[self.index][0][i][1]*480))
                 centers[i] = center
                 image = cv2.circle(image, center, 2, (0, 0, 255), thickness=20, lineType=8, shift=0)
 
+            # Plot the connections between points
             for pair in constants.PairsRender:
-                if pair[0] not in self.gesture[self.index][0].keys() or pair[1] not in self.gesture[self.index][0].keys():
+                if pair[0] not in centers.keys() or pair[1] not in centers.keys():
                     continue
 
                 image = cv2.line(image, centers[pair[0]], centers[pair[1]], (0,0,255), 3)
@@ -361,7 +393,7 @@ class gestureWidget(Widget):
                 # Get identities if change in the number of humans (points) frame
                 if self.humans_in_environment != len(points):
                    face_locations, face_names = self.faces.identify_faces(image)
-                   self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names)
+                   self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names, im_height, im_width)
                    self.humans_in_environment = len(points)
                 else:
                 # Update the poses of each individual human in frame
@@ -393,10 +425,11 @@ class gestureWidget(Widget):
     def updateFaces(self):
         image = self.sensor.get_sensor_information(self.sensor_method)
         if image is not None:
+            im_height, im_width = image.shape[:2]
             points = self.pose.get_points(self.pose_model,image)
             if points is not None:
                 face_locations, face_names = self.faces.identify_faces(image)
-                self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names)
+                self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names, im_height, im_width)
                 self.humans_in_environment = len(points)
 
     def playPause(self):

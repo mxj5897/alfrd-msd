@@ -129,7 +129,7 @@ class Poses():
             pose_logger.warning("Error plotting human skeleton")
             return None
 
-    def assign_face_to_pose(self,points, face_locations, face_names):
+    def assign_face_to_pose(self,points, face_locations, face_names, height, width):
         # This function should only be called when the number of skeletons in the image changes
         # Assumes that that number of skeletons in the frame will always
         # be greater than or equal to the number of faces
@@ -140,19 +140,17 @@ class Poses():
             human = Humans()
             human.identity = "Unknown"
             human.current_pose = person
-
+            
             for i in [0,15,16]: # the points on the skeleton corresponding to the face
                 if i not in person.keys():
                     continue
 
                 target_body_part = person[i]
                 for (top, right, bottom, left), name in zip(face_locations, face_names):
-                    if target_body_part[0] > left*4 and target_body_part[0] < right*4:
-                        if target_body_part[1] >= bottom*4 and target_body_part[1] < top*4:
+                    if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
+                        if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
                             human.identity = name
                             continue
-                        else:
-                            human.identity = "Unknown"
 
                 humans.append(human)
         return humans
