@@ -390,22 +390,27 @@ class gestureWidget(Widget):
             self.ids.image_source.reload()
 
 
+    def updateFaces(self):
+        image = self.sensor.get_sensor_information(self.sensor_method)
+        if image is not None:
+            points = self.pose.get_points(self.pose_model,image)
+            if points is not None:
+                face_locations, face_names = self.faces.identify_faces(image)
+                self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names)
+                self.humans_in_environment = len(points)
+
     def playPause(self):
         # Defines behavior for play / pause button
-
-
-        # Troubleshooting the Popup Message (Delete 3 lines below once it works on Jim's PC)
-        # MessageBox = MessagePopup(str("Prediction is: "))
-        # MessageBox.open()
-        # print("Could not find available sensor")
 
         if self.ids.status.text == "Stop":
             self.ids.status.text = "Play"
             self.ids.status.background_color = [1,1,1,1]
             self.sensor.__del__()
             self.sensor_method = None
+            self.ids.face_recog.disabled = True
             Clock.unschedule(self.update)
         else:
+            self.ids.face_recog.disabled = False
             self.ids.status.text = "Stop"
             self.ids.status.background_color = [0,1,1,1]
             if self.sensor_method is None:

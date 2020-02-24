@@ -134,7 +134,8 @@ gestureWidget:
                 id: face_recog
                 text: 'Update Faces'
                 bold: True
-                on_press: root.playPause()
+                disabled: True
+                on_press: root.updateFaces()
         AnchorLayout:
             anchor_y: 'bottom'
             size_hint: [1, .10]
