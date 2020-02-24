@@ -134,10 +134,10 @@ class AddGesturePopUp(BoxLayout):
         font = cv2.FONT_HERSHEY_SIMPLEX
         if self.Count > 0:
             self.Count = self.Count - 1
-            image = cv2.imread('temp1.png')
+            image = cv2.imread('./images/temp1.png')
             height, width = image.shape[:2]
             image = cv2.putText(image, str(self.Count), (int(width/2)-30, int(height/2)), font, 7, (22, 22,205), 10, cv2.LINE_AA)
-            cv2.imwrite( 'temp.png', image)
+            cv2.imwrite( './images/temp.png', image)
             self.ids.add_source.reload()
         else:
             Clock.schedule_interval(self.update_recording, 0.1)
@@ -190,7 +190,7 @@ class AddGesturePopUp(BoxLayout):
             if points is not None:
                 self.temp_queue.append(points)
 
-            cv2.imwrite( 'temp.png', image)
+            cv2.imwrite( './images/temp.png', image)
             self.ids.add_source.reload()
 
 class helpMenu(ScrollView):
@@ -362,10 +362,10 @@ class SettingsPopUp(BoxLayout):
 
         # Open popup
         blank_image = np.zeros((480,480,3), np.uint8)
-        cv2.imwrite( 'playback.png', blank_image)
+        cv2.imwrite('./images/playback.png', blank_image)
 
         box = BoxLayout(orientation='vertical')
-        self.Img = Image(id='playback', source='playback.png')
+        self.Img = Image(id='playback', source='./images/playback.png')
         box.add_widget(self.Img)
         self.popup2 = Popup(title='Playback Gesture', content=box,size_hint=(.8,.8))
         self.popup2.open()
@@ -383,7 +383,7 @@ class SettingsPopUp(BoxLayout):
 
 
         if self.index <= (len(self.gesture)-2):
-            image = cv2.imread('empty_room.jpg')
+            image = cv2.imread('./images/empty_room.jpg')
             im_h, im_w = image.shape[:2]
 
             # Setup image
@@ -411,7 +411,7 @@ class SettingsPopUp(BoxLayout):
             for i in centers.keys():
                 image = cv2.putText(image, point_ordering[i], (centers[i][0]+10, centers[i][1]-10), font, 0.3, (0,0,255), 1)
 
-            cv2.imwrite( 'playback.png', image)
+            cv2.imwrite('./images/playback.png', image)
 
             self.Img.reload()
             self.index += 1
@@ -452,9 +452,9 @@ class gestureWidget(Widget):
         self.settings = SettingsPopUp()
 
         # # resets image
-        if os.path.isfile('foo.png'):
-            os.remove("foo.png")
-        shutil.copy('foo1.png', 'foo.png')
+        if os.path.isfile('./images/foo.png'):
+            os.remove("./images/foo.png")
+        shutil.copy('./images/foo1.png', './images/foo.png')
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
@@ -492,7 +492,7 @@ class gestureWidget(Widget):
                         #     message.open()
                         #TODO:: Calls to Robot.py
                         
-            cv2.imwrite('foo.png', image)
+            cv2.imwrite('./images/foo.png', image) 
             self.ids.image_source.reload()
 
 
