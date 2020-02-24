@@ -5,7 +5,7 @@
 ########################################################################################################################
 
 # Location where the facial images used to create embeddings are stored
-FACE_DATASET_PATH = 'dataset/'
+FACE_DATASET_PATH = 'face_data/'
 # Saved location for embedding information
 FACE_ENCODINGS_PATH = 'encodings.npy'
 AVG_IMG_NUM_PER_USER = 15
