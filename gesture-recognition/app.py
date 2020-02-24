@@ -241,6 +241,66 @@ class SettingsPopUp(BoxLayout):
         self.popup1 = Popup(title='Add Gesture', content=box, size_hint=(.8,.8))
         self.popup1.open()
 
+    def userlist(self):
+        # Displays list of users that the system should recognize
+        if os.path.isfile('./names.npy'):
+            faces_names = np.load('./names.npy')
+
+            box = GridLayout(cols=3)
+            for i, name in enumerate(faces_names):
+                if i == 0 or faces_names[i] != faces_names[i-1]:
+                    text_box = Label(text=name)
+                    box.add_widget(text_box)
+                    view_btn = Button(text='View User', bold=True, id=name)
+                    view_btn.bind(on_press=self.viewUser)
+                    box.add_widget(view_btn)
+                    clear_btn = Button(text="Clear", bold=True, id=name)
+                    clear_btn.bind(on_press=self.clearUser)
+                    box.add_widget(clear_btn)
+
+            close_btn = Button(text='Close', bold=True)
+            close_btn.bind(on_press=self.closePopup1)
+            box.add_widget(close_btn)
+
+            self.popup1 = Popup(title='User List', content=box, size_hint=(.6,.4))
+            self.popup1.open()
+
+    def viewUser(self, btn):
+        # Creates popup window of the user
+        box = BoxLayout(orientation='vertical')
+        dirPath = constants.FACE_DATASET_PATH+btn.id+'/'
+        if os.path.exists(dirPath) and os.path.isdir(dirPath):
+            for filename in os.listdir(dirPath):
+                image_name = constants.FACE_DATASET_PATH+btn.id+'/'+filename
+                self.Img = Image(id='User', source=image_name)
+                break
+
+            box.add_widget(self.Img)
+            self.popup2 = Popup(title='User: ' + btn.id, content=box,size_hint=(.8,.8))
+            self.popup2.open()
+
+    def clearUser(self, btn):
+        faces_encodings = np.load('encodings.npy')
+        faces_names = np.load('names.npy')
+
+        indices = []
+        for i, name in  enumerate(faces_names):
+            if name == btn.id:
+                indices.append(i)
+
+        faces_encodings = np.delete(faces_encodings, indices)
+        faces_names = np.delete(faces_names, indices)
+        
+        np.save('encodings', faces_encodings)
+        np.save('names', faces_names)
+
+        dirPath = constants.FACE_DATASET_PATH+btn.id+'/'
+        if os.path.exists(dirPath) and os.path.isdir(dirPath):
+            shutil.rmtree(dirPath)
+
+        self.closePopup1(btn)
+        self.userlist()
+
     def gestureList(self):
         # Displays popup of the list of available gestures from dictionary_labels.csv file
         # Dynamic widget defined in python not kv
