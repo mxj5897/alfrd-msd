@@ -241,6 +241,8 @@ class SettingsPopUp(BoxLayout):
         self.disabled = True
         self.faces.make_dataset_embeddings()
         self.disabled = False
+        message = MessagePopup(str("Done adding new users"))
+        message.open()
 
     def displayHelp(self):
         # Displays popup of the help page using help.txt file
@@ -463,6 +465,9 @@ class gestureWidget(Widget):
         self.humans_in_environment = 0
         self.sensor_method = None #self.sensor.get_method()
         self.aux_info = False
+        self.skip = True
+        self.face_locations = None
+        self.face_names = None
         self.humans = []
         self.settings = SettingsPopUp()
         self.fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -477,17 +482,21 @@ class gestureWidget(Widget):
         image = self.sensor.get_sensor_information(self.sensor_method)
         if image is not None:
             points = self.pose.get_points(self.pose_model,image)
-            if points is not None:
+            if self.skip:
+                self.face_locations, self.face_names = self.faces.identify_faces(image)
+                print(self.face_names)
+            self.skip = not self.skip
+
+            if points is not None and self.face_names is not None and self.face_locations is not None:
                 im_height, im_width = image.shape[:2]
                 
                 # Get identities if change in the number of humans (points) frame
                 if self.humans_in_environment != len(points):
-                   face_locations, face_names = self.faces.identify_faces(image)
-                   self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names, im_height, im_width)
+                   self.humans = self.pose.assign_face_to_pose(points, self.face_locations, self.face_names, im_height, im_width)
                    self.humans_in_environment = len(points)
                 else:
                 # Update the poses of each individual human in frame
-                    self.humans = self.pose.update_human_poses(points, self.humans)
+                    self.humans = self.pose.update_human_poses(points, self.face_locations, self.face_names, self.humans)
                 
                 if self.humans is not None:
                     # Plot user identities and (optional) poses
@@ -497,12 +506,12 @@ class gestureWidget(Widget):
 
                     # Update each respective queue and classify gestures
                     for human in self.humans:
-                        # if human.identity == "Unknown":
-                        #      continue
+                        if human.identity == "Unknown":
+                             continue
 
-                        human.classify.add_to_queue(list(human.current_pose.items()))
+                        # human.classify.add_to_queue(list(human.current_pose.items()))
 
-                        human.prediction = human.classify.classify_gesture()
+                        # human.prediction = human.classify.classify_gesture()
                         # if human.prediction != "Unknown":
                         #     message = MessagePopup(str("Prediction is" + human.prediction))
                         #     message.open()

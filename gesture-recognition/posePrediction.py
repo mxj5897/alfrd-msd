@@ -96,7 +96,7 @@ class Poses():
                 head = [human.current_pose[0][0]*image_w, human.current_pose[0][1]*image_h]
                 image = cv2.putText(image, human.identity, (int(head[0]) + 6, int(head[1]) + 6), font, 1.0, (0, 255, 255), 1)
                 y = y0 + dt * i
-                cv2.putText(image, human.identity,(10,y), font, 0.5, (0,0,0),1)
+                image = cv2.putText(image, human.identity,(10,y), font, 0.5, (0,0,0),1)
         return image
 
     def plot_pose(self, image, humans,image_h, image_w):
@@ -146,16 +146,21 @@ class Poses():
                     continue
 
                 target_body_part = person[i]
+                print("The target body part is x" + str(target_body_part[0]*width))
+                print("The target body part is y" + str(target_body_part[1]*height))
+                
+
+
                 for (top, right, bottom, left), name in zip(face_locations, face_names):
+                    print("Your head is at " + str(left*4)+", "+str(right*4)+", "+str(top*4)+", "+str(bottom*4)+", ")
                     if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
                         if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
                             human.identity = name
-                            continue
 
                 humans.append(human)
         return humans
 
-    def update_human_poses(self, points, humans):
+    def update_human_poses(self, points, face_locs, face_names, humans):
         # Minimizes the distance between the poses of each human between frames
         # Does not account for overlapping humans in frames
 	    #TODO:: Add proximity test to determine how close humans are in environment??
