@@ -49,6 +49,20 @@ class AutoCaptureFacesPopup(BoxLayout):
         self.sensor_method = None
         self.img_count = 0
         self.skip = True
+
+        Clock.unschedule(self.update_recording)
+        if self.sensor_method is not None:
+            Clock.schedule_interval(self.liveFeed, 0.1)
+        else:
+            message = MessagePopup(str("Not connected to sensor"))
+            message.open()
+        
+    def liveFeed(self):
+        image = self.sensor.get_sensor_information(self.sensor_method)
+
+        if image is not None and self.skip:               
+            cv2.imwrite(constants.IMAGE_PATH+'temp.png', image)
+            self.ids.addUser.reload()
         
     def start_recording(self):
         # Starts the recording process and adds folderfor user
@@ -58,7 +72,8 @@ class AutoCaptureFacesPopup(BoxLayout):
             self.sensor.__del__() # releases camera / kinect
             
             # Unschedule update function
-            Clock.unschedule(self.update_recording)
+            # Clock.unschedule(self.update_recording)
+            Clock.unschedule(self.liveFeed)
         else:
             # Set some button properties
             self.ids.start_recording.text = "Stop Recording"
