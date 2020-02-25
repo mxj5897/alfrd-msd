@@ -66,8 +66,8 @@ class faceRecognition():
             encodings, names = self.load_dataset(constants.FACE_DATASET_PATH)
 
             # Save out facial ecnoding date for future use
-            np.save('encodings', encodings)
-            np.save('names', names)
+            np.save(constants.FACE_ENCODINGS_PATH, encodings)
+            np.save(constants.FACE_NAMES_PATH, names)
             print("Done")
         except:
             face_logger.error('Could not create facial encodings. Check to ensure face dataset is in the correct location')

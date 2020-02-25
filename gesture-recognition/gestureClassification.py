@@ -38,7 +38,7 @@ class Classify():
         with open(path) as file:
             reader = csv.reader(file, delimiter=';')
             file_array = [row for row in reader]
-            if path == 'dictionary_labels.csv':
+            if path == constants.GESTURE_LABELS:
                 return file_array
         file_array = [ast.literal_eval(fil_arr[0]) for fil_arr in file_array]
         array = []
@@ -54,27 +54,27 @@ class Classify():
     def update_dictionary(self):
         # Load the contents of the csv files into memory
         try:
-            self.dictionary_gestures = self.read_in_file('dictionary_gestures.csv')
-            self.dictionary_labels = self.read_in_file('dictionary_labels.csv')
+            self.dictionary_gestures = self.read_in_file(constants.GESTURE_DICTIONARY)
+            self.dictionary_labels = self.read_in_file(constants.GESTURE_LABELS)
         except:
             classification_logger.warning('Could not update the dictionary')
 
     def clear_dictionary(self, btn):
         # Clears dictionary by deleting csv files
         try:
-            if os.path.isfile('./dictionary_gestures.csv') and os.path.isfile('./dictionary_labels.csv'):
-                os.remove('./dictionary_gestures.csv')
-                os.remove('./dictionary_labels.csv')
+            if os.path.isfile(constants.GESTURE_DICTIONARY) and os.path.isfile(constants.GESTURE_LABELS):
+                os.remove(constants.GESTURE_DICTIONARY)
+                os.remove(constants.GESTURE_LABELS)
         except:
             classification_logger.warning('Could not erase dictionary files.')
 
     def add_to_dictionary(self, gesture, label):
         # Add label and gesture to dictionary to two separate csv files
         try:
-            with open('./dictionary_gestures.csv', 'a') as g_file:
+            with open(constants.GESTURE_DICTIONARY, 'a') as g_file:
                 g_writer = csv.writer(g_file, delimiter=';')
                 g_writer.writerow([gesture])
-            with open('./dictionary_labels.csv', 'a') as l_file:
+            with open(constants.GESTURE_LABELS, 'a') as l_file:
                 l_writer = csv.writer(l_file, delimiter=';')
                 l_writer.writerow([label])
         except:

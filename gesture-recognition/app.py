@@ -107,7 +107,7 @@ class AutoCaptureFacesPopup(BoxLayout):
                 cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', image)
                 self.img_count += 1
                
-            cv2.imwrite( 'addUser.png', disp)
+            cv2.imwrite(constants.IMAGE_PATH+'addUser.png', disp)
             self.ids.addUser.reload()
         self.skip = not self.skip
 
@@ -134,10 +134,10 @@ class AddGesturePopUp(BoxLayout):
         font = cv2.FONT_HERSHEY_SIMPLEX
         if self.Count > 0:
             self.Count = self.Count - 1
-            image = cv2.imread('./images/temp1.png')
+            image = cv2.imread(constants.IMAGE_PATH+'temp1.png')
             height, width = image.shape[:2]
             image = cv2.putText(image, str(self.Count), (int(width/2)-30, int(height/2)), font, 7, (22, 22,205), 10, cv2.LINE_AA)
-            cv2.imwrite( './images/temp.png', image)
+            cv2.imwrite( constants.IMAGE_PATH+'temp.png', image)
             self.ids.add_source.reload()
         else:
             Clock.schedule_interval(self.update_recording, 0.1)
@@ -190,7 +190,7 @@ class AddGesturePopUp(BoxLayout):
             if points is not None:
                 self.temp_queue.append(points)
 
-            cv2.imwrite( './images/temp.png', image)
+            cv2.imwrite(constants.IMAGE_PATH+'temp.png', image)
             self.ids.add_source.reload()
 
 class helpMenu(ScrollView):
@@ -229,7 +229,7 @@ class SettingsPopUp(BoxLayout):
 
     def displayHelp(self):
         # Displays popup of the help page using help.txt file
-        with open( 'helpPage.txt', 'r') as file:
+        with open(constants.ASSETS_PATH+'helpPage.txt', 'r') as file:
             helpInfo = file.read()
 
         scroll = helpMenu(text=helpInfo)
@@ -243,8 +243,8 @@ class SettingsPopUp(BoxLayout):
 
     def userlist(self):
         # Displays list of users that the system should recognize
-        if os.path.isfile('./names.npy'):
-            faces_names = np.load('./names.npy')
+        if os.path.isfile(constants.FACE_DATASET_PATH+'names.npy'):
+            faces_names = np.load(constants.FACE_DATASET_PATH+'names.npy')
 
             box = GridLayout(cols=3)
             for i, name in enumerate(faces_names):
@@ -280,8 +280,8 @@ class SettingsPopUp(BoxLayout):
             self.popup2.open()
 
     def clearUser(self, btn):
-        faces_encodings = np.load('encodings.npy')
-        faces_names = np.load('names.npy')
+        faces_encodings = np.load(constants.FACE_DATASET_PATH+'encodings.npy')
+        faces_names = np.load(constants.FACE_DATASET_PATH+'names.npy')
 
         indices = []
         for i, name in  enumerate(faces_names):
@@ -291,8 +291,8 @@ class SettingsPopUp(BoxLayout):
         faces_encodings = np.delete(faces_encodings, indices)
         faces_names = np.delete(faces_names, indices)
         
-        np.save('encodings', faces_encodings)
-        np.save('names', faces_names)
+        np.save(constants.FACE_DATASET_PATH+'encodings', faces_encodings)
+        np.save(constants.FACE_DATASET_PATH+'names', faces_names)
 
         dirPath = constants.FACE_DATASET_PATH+btn.id+'/'
         if os.path.exists(dirPath) and os.path.isdir(dirPath):
@@ -304,9 +304,9 @@ class SettingsPopUp(BoxLayout):
     def gestureList(self):
         # Displays popup of the list of available gestures from dictionary_labels.csv file
         # Dynamic widget defined in python not kv
-        if os.path.isfile( 'dictionary_labels.csv'):
+        if os.path.isfile(constants.GESTURE_LABELS):
             box = GridLayout(cols=3)
-            with open( 'dictionary_labels.csv') as csvfile:
+            with open(constants.GESTURE_LABELS) as csvfile:
                 reader = csv.reader(csvfile)
                 for i, row in enumerate(reader):
                     text_box = Label(text=row[0])
@@ -329,11 +329,11 @@ class SettingsPopUp(BoxLayout):
             message.open()
 
     def clearGesture(self, btn):
-        if not os.path.isfile('dictionary_gestures.csv') or not os.path.isfile('dictionary_labels.csv'):
+        if not os.path.isfile(constants.GESTURE_DICTIONARY) or not os.path.isfile(constants.GESTURE_DICTIONARY):
             return
 
-        self.clearFromCSV(btn.id[-1], 'dictionary_gestures.csv')
-        self.clearFromCSV(btn.id[-1], 'dictionary_labels.csv')
+        self.clearFromCSV(btn.id[-1], constants.GESTURE_DICTIONARY)
+        self.clearFromCSV(btn.id[-1], constants.GESTURE_LABELS)
 
         self.closePopup1(btn)
         self.gestureList()
@@ -352,20 +352,20 @@ class SettingsPopUp(BoxLayout):
 
     def playBackGesture(self, btn):
         # Gets gesture from dictionary and schedules dictionary function
-        if not os.path.isfile('dictionary_gestures.csv'):
+        if not os.path.isfile(constants.GESTURE_DICTIONARY):
             return
 
-        with open( 'dictionary_gestures.csv') as file:
+        with open(constants.GESTURE_DICTIONARY) as file:
             reader = csv.reader(file, delimiter=';')
             self.gesture=[row for idx, row in enumerate(reader) if idx == int(btn.id)]
             self.gesture = ast.literal_eval(self.gesture[0][0])[0]
 
         # Open popup
         blank_image = np.zeros((480,480,3), np.uint8)
-        cv2.imwrite('./images/playback.png', blank_image)
+        cv2.imwrite(constants.IMAGE_PATH+'playback.png', blank_image)
 
         box = BoxLayout(orientation='vertical')
-        self.Img = Image(id='playback', source='./images/playback.png')
+        self.Img = Image(id='playback', source=constants.IMAGE_PATH+'playback.png')
         box.add_widget(self.Img)
         self.popup2 = Popup(title='Playback Gesture', content=box,size_hint=(.8,.8))
         self.popup2.open()
@@ -411,7 +411,7 @@ class SettingsPopUp(BoxLayout):
             for i in centers.keys():
                 image = cv2.putText(image, point_ordering[i], (centers[i][0]+10, centers[i][1]-10), font, 0.3, (0,0,255), 1)
 
-            cv2.imwrite('./images/playback.png', image)
+            cv2.imwrite(constants.IMAGE_PATH+'playback.png', image)
 
             self.Img.reload()
             self.index += 1
@@ -450,11 +450,12 @@ class gestureWidget(Widget):
         self.aux_info = False
         self.humans = []
         self.settings = SettingsPopUp()
+        self.fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
         # # resets image
-        if os.path.isfile('./images/foo.png'):
-            os.remove("./images/foo.png")
-        shutil.copy('./images/foo1.png', './images/foo.png')
+        if os.path.isfile(constants.IMAGE_PATH+'foo.png'):
+            os.remove(constants.IMAGE_PATH+"foo.png")
+        shutil.copy(constants.IMAGE_PATH+'foo1.png', constants.IMAGE_PATH+'foo.png')
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
@@ -492,8 +493,9 @@ class gestureWidget(Widget):
                         #     message.open()
                         #TODO:: Calls to Robot.py
                         
-            cv2.imwrite('./images/foo.png', image) 
+            cv2.imwrite(constants.IMAGE_PATH+'foo.png', image) 
             self.ids.image_source.reload()
+            self.VideoWriter.write(image)
 
 
     def updateFaces(self):
@@ -515,8 +517,10 @@ class gestureWidget(Widget):
             self.sensor.__del__()
             self.sensor_method = None
             self.ids.face_recog.disabled = True
+            self.VideoWriter.release()
             Clock.unschedule(self.update)
         else:
+            self.VideoWriter = cv2.VideoWriter('./tests/output.avi', self.fourcc, 5.0, (640,480))
             self.ids.face_recog.disabled = False
             self.ids.status.text = "Stop"
             self.ids.status.background_color = [0,1,1,1]
