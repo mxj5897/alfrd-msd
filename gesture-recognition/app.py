@@ -46,22 +46,21 @@ class AutoCaptureFacesPopup(BoxLayout):
         super(AutoCaptureFacesPopup, self).__init__(**kwargs)
         self.faces = faceRecognition()
         self.sensor = Sensors()
-        self.sensor_method = None
+        self.sensor_method = self.sensor.get_method()
         self.img_count = 0
         self.skip = True
 
-        Clock.unschedule(self.update_recording)
+        # Clock.unschedule(self.update_recording)
         if self.sensor_method is not None:
             Clock.schedule_interval(self.liveFeed, 0.1)
         else:
             message = MessagePopup(str("Not connected to sensor"))
             message.open()
         
-    def liveFeed(self):
+    def liveFeed(self, btn):
         image = self.sensor.get_sensor_information(self.sensor_method)
-
-        if image is not None and self.skip:               
-            cv2.imwrite(constants.IMAGE_PATH+'temp.png', image)
+        if image is not None:               
+            cv2.imwrite(constants.IMAGE_PATH+'addUser.png', image)
             self.ids.addUser.reload()
         
     def start_recording(self):
@@ -73,35 +72,34 @@ class AutoCaptureFacesPopup(BoxLayout):
             
             # Unschedule update function
             # Clock.unschedule(self.update_recording)
-            Clock.unschedule(self.liveFeed)
+            # Clock.unschedule(self.liveFeed)
         else:
             # Set some button properties
-            self.ids.start_recording.text = "Stop Recording"
-            self.ids.start_recording.disabled = True
-            self.ids.start_recording.background_color = [0,1,1,1]
-            
             if self.ids.addUserLabel.text == "": # requires user name
-                return
-
-            # check if there is already a folder with user images
-            if os.path.exists('data/'+self.ids.addUserLabel.text):
-                message = MessagePopup(str("User with that name already exist. \n Please enter a different name"))
+                message = MessagePopup(str("Please add user name"))
                 message.open()
-                self.ids.start_recording.background_color = [1,1,1,1]
-                self.ids.start_recording.disabled = False
-                return
-
-            # creates directory to store user photos
-            os.makedirs( 'data/'+self.ids.addUserLabel.text)
-
-            if self.sensor_method is None:
-                self.sensor_method = self.sensor.get_method()
-
-            if self.sensor_method is not None:
-                Clock.schedule_interval(self.autoCaptureFace, 0.1)
             else:
-                message = MessagePopup(str("Not connected to sensor"))
-                message.open()
+                # check if there is already a folder with user images
+                if os.path.exists(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text):
+                    message = MessagePopup(str("User with that name already exist. \n Please enter a different name"))
+                    message.open()
+                else:
+                    self.ids.start_recording.text = "Stop Recording"
+                    self.ids.start_recording.disabled = True
+                    self.ids.start_recording.background_color = [0,1,1,1]
+
+                    # creates directory to store user photos
+                    os.makedirs( constants.FACE_DATASET_PATH+self.ids.addUserLabel.text)
+
+                    if self.sensor_method is None:
+                        self.sensor_method = self.sensor.get_method()
+
+                    if self.sensor_method is not None:
+                        Clock.unschedule(self.liveFeed)
+                        Clock.schedule_interval(self.autoCaptureFace, 0.1)
+                    else:
+                        message = MessagePopup(str("Not connected to sensor"))
+                        message.open()
 
     def autoCaptureFace(self, btn):
         # Captures and writes facial files to disk
@@ -109,6 +107,8 @@ class AutoCaptureFacesPopup(BoxLayout):
             self.img_count = 0
             self.ids.start_recording.background_color = [1,1,1,1]
             self.faces.make_dataset_embeddings()
+            message = MessagePopup(str("Done adding new users"))
+            message.open()
             return False
 
         image = self.sensor.get_sensor_information(self.sensor_method)
