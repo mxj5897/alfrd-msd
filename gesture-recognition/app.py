@@ -445,6 +445,15 @@ class SettingsPopUp(BoxLayout):
         else:
             self.ids.aux_info.text = 'Display Auxilary Info: False'
             self.ids.aux_info.background_color = [1, 1, 1, 1]
+    
+    def recordSession(self):
+        # Record Session
+        if self.ids.record_session.text == "Record Session: False":
+            self.ids.record_session.text = 'Record Session: True'
+            self.ids.record_session.background_color = [0, 1, 1, 1]
+        else:
+            self.ids.record_session.text = 'Record Session: False'
+            self.ids.record_session.background_color = [1, 1, 1, 1]
 
     def closePopup1(self, btn):
         # Closes secondary popup
@@ -471,11 +480,12 @@ class gestureWidget(Widget):
         self.humans = []
         self.settings = SettingsPopUp()
         self.fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+        self.VideoWriter = None
 
         # # resets image
-        if os.path.isfile(constants.IMAGE_PATH+'foo.png'):
+        if os.path.isfile(constants.IMAGE_PATH+'foo.png') and os.path.isfile(constants.IMAGE_PATH+'foo1.png'):
             os.remove(constants.IMAGE_PATH+"foo.png")
-        shutil.copy(constants.IMAGE_PATH+'foo1.png', constants.IMAGE_PATH+'foo.png')
+            shutil.copy(constants.IMAGE_PATH+'foo1.png', constants.IMAGE_PATH+'foo.png')
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
@@ -496,7 +506,7 @@ class gestureWidget(Widget):
                    self.humans_in_environment = len(points)
                 else:
                 # Update the poses of each individual human in frame
-                    self.humans = self.pose.update_human_poses(points, self.face_locations, self.face_names, self.humans)
+                    self.humans = self.pose.update_human_poses(points, self.face_locations, self.face_names, self.humans, im_width, im_height)
                 
                 if self.humans is not None:
                     # Plot user identities and (optional) poses
@@ -519,18 +529,9 @@ class gestureWidget(Widget):
                         
             cv2.imwrite(constants.IMAGE_PATH+'foo.png', image) 
             self.ids.image_source.reload()
-            self.VideoWriter.write(image)
 
-
-    def updateFaces(self):
-        image = self.sensor.get_sensor_information(self.sensor_method)
-        if image is not None:
-            im_height, im_width = image.shape[:2]
-            points = self.pose.get_points(self.pose_model,image)
-            if points is not None:
-                face_locations, face_names = self.faces.identify_faces(image)
-                self.humans = self.pose.assign_face_to_pose(points, face_locations, face_names, im_height, im_width)
-                self.humans_in_environment = len(points)
+            if self.settings.ids.record_session.text == 'Display Auxilary Info: True':
+                self.VideoWriter.write(image)
 
     def playPause(self):
         # Defines behavior for play / pause button
@@ -540,18 +541,17 @@ class gestureWidget(Widget):
             self.ids.status.background_color = [1,1,1,1]
             self.sensor.__del__()
             self.sensor_method = None
-            self.ids.face_recog.disabled = True
             self.VideoWriter.release()
             Clock.unschedule(self.update)
         else:
-            self.VideoWriter = cv2.VideoWriter('./tests/output.avi', self.fourcc, 5.0, (640,480))
-            self.ids.face_recog.disabled = False
-            self.ids.status.text = "Stop"
-            self.ids.status.background_color = [0,1,1,1]
             if self.sensor_method is None:
                 self.sensor_method = self.sensor.get_method()
-
+            
             if self.sensor_method is not None:
+                self.VideoWriter = cv2.VideoWriter('./tests/output.avi', self.fourcc, 5.0, (640,480))
+                self.ids.status.text = "Stop"
+                self.ids.status.background_color = [0,1,1,1]
+                self.skip = True
                 Clock.schedule_interval(self.update, 0.1)
             else:
                 #TODO:: Write popup for error message

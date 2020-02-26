@@ -101,6 +101,11 @@ gestureWidget:
             on_press: root.displayInfo()
             bold: True
         Button:
+            text: 'Record Session: False'
+            id: record_session
+            on_press: root.recordSession()
+            bold: True
+        Button:
             text: 'Available Gestures'
             on_press: root.gestureList()
             bold: True
@@ -123,18 +128,8 @@ gestureWidget:
             source: 'assets/images/foo.png'
     BoxLayout:
         orientation: 'vertical'
-        size: root.width, root.height / 10
+        size: root.width, root.height / 20
         spacing: '5dp'
-        AnchorLayout:
-            anchor_y: 'top'
-            anchor_x: 'right'
-            size_hint: [1, .10]
-            Button:
-                id: face_recog
-                text: 'Update Faces'
-                bold: True
-                disabled: True
-                on_press: root.updateFaces()
         AnchorLayout:
             anchor_y: 'bottom'
             size_hint: [1, .10]
