@@ -174,8 +174,8 @@ class AddGesturePopUp(BoxLayout):
     def liveFeed(self, btn):
         image = self.sensor.get_sensor_information(self.sensor_method)
         if image is not None:               
-            cv2.imwrite(constants.IMAGE_PATH+'addGesture.png', image)
-            self.ids.addUser.reload()
+            cv2.imwrite(constants.IMAGE_PATH+'temp.png', image)
+            self.ids.add_source.reload()
 
     def addGesture(self):
         # Determines save gesture button behavior
