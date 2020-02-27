@@ -146,13 +146,8 @@ class Poses():
                     continue
 
                 target_body_part = person[i]
-                print("The target body part is x" + str(target_body_part[0]*width))
-                print("The target body part is y" + str(target_body_part[1]*height))
-                
-
-
+      
                 for (top, right, bottom, left), name in zip(face_locations, face_names):
-                    print("Your head is at " + str(left*4)+", "+str(right*4)+", "+str(top*4)+", "+str(bottom*4)+", ")
                     if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
                         if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
                             human.identity = name
@@ -160,7 +155,7 @@ class Poses():
                 humans.append(human)
         return humans
 
-    def update_human_poses(self, points, face_locs, face_names, humans):
+    def update_human_poses(self, points, face_locs, face_names, humans, width, height):
         # Minimizes the distance between the poses of each human between frames
         # Does not account for overlapping humans in frames
 	    #TODO:: Add proximity test to determine how close humans are in environment??
@@ -173,7 +168,7 @@ class Poses():
                 dist_cost = 0
                 for i in constants.POINTS:
                     if i in human.current_pose.keys() and i in pnt.keys():
-                        dist_cost += (human.current_pose[i][0] - pnt[i][0]) + (human.current_pose[i][1] - pnt[i][1])
+                        dist_cost += abs(human.current_pose[i][0] - pnt[i][0]) + abs(human.current_pose[i][1] - pnt[i][1])
                     elif(i not in human.current_pose.keys() and i not in pnt.keys()):
                         dist_cost += 0
                     else:
@@ -181,4 +176,15 @@ class Poses():
                 if min_dist_cost == 0 or min_dist_cost > dist_cost:
                     min_dist_cost = dist_cost
                     human.current_pose = pnt
+
+            for ind in [0, 15, 16]:
+                if ind not in human.current_pose.keys() or human.identity != "Unknown":
+                    continue
+                
+                target_body_part = human.current_pose[ind]
+
+                for (top, right, bottom, left), name in zip(face_locs, face_names):
+                    if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
+                        if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
+                            human.identity = name
         return humans
