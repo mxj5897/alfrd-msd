@@ -136,8 +136,20 @@ class AddGesturePopUp(BoxLayout):
         self.sensor = Sensors()
         self.temp_queue = []
         self.Count = constants.COUNTDOWN
-        self.sensor_method = None
+        self.sensor_method = self.sensor.get_method()
         self.pose_model = None
+
+        if self.sensor_method is not None:
+            Clock.schedule_interval(self.liveFeed, 0.1)
+        else:
+            message = MessagePopup(str("Not connected to sensor"))
+            message.open()
+        
+    def liveFeed(self, btn):
+        image = self.sensor.get_sensor_information(self.sensor_method)
+        if image is not None:               
+            cv2.imwrite(constants.IMAGE_PATH+'addGesture.png', image)
+            self.ids.addUser.reload()
 
     def addGesture(self):
         # Determines save gesture button behavior
@@ -166,7 +178,7 @@ class AddGesturePopUp(BoxLayout):
             self.ids.start_recording.background_color = [1,1,1,1]
             self.sensor.__del__()
             self.ids.add_source.reload()
-            Clock.unschedule(self.update_recording)
+            # Clock.unschedule(self.update_recording)
         else:
             self.temp_queue = []
             self.ids.start_recording.text = "Stop Recording"
@@ -177,6 +189,7 @@ class AddGesturePopUp(BoxLayout):
             if self.sensor_method is None:
                 self.sensor_method = self.sensor.get_method()
             if self.sensor_method is not None:
+                Clock.unschedule(self.liveFeed)
                 Clock.schedule_interval(self.set_count, 1)
             else:
                 message = MessagePopup(str("Not connected to the sensor"))
