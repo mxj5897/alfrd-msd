@@ -41,6 +41,24 @@ from kivy.properties import StringProperty, NumericProperty
 
 
 class AutoCaptureFacesPopup(BoxLayout):
+    instrDict = {
+        0 : "up",
+        1 : "up",
+        2 : "up and to the right",
+        3 : "up and to the right",
+        4 : "right",
+        5 : "right",
+        6 : "down and to the right",
+        7 : "down and to the right",
+        8 : "down",
+        9 : "down",
+        10 : "down and to the left",
+        11 : "down and to the left",
+        12 : "left",
+        13 : "left",
+        14 : "up and to the left",
+        15 : "up and to the left",
+    }
     # Automatically adds users to the set of recognized users
     def __init__(self, **kwargs):
         super(AutoCaptureFacesPopup, self).__init__(**kwargs)
@@ -119,6 +137,14 @@ class AutoCaptureFacesPopup(BoxLayout):
             disp = self.faces.draw_faces(image, face_locations, face_names)
 
             if face_locations is not None:
+                sleepTime = 1
+                self.ids.addUserIntr.text = "Tilt head " + instrDict[self.img_count] + "... [3]"
+                time.sleep(sleepTime)
+                self.ids.addUserIntr.text = "Tilt head " + instrDict[self.img_count] + "... [2]"
+                time.sleep(sleepTime)
+                self.ids.addUserIntr.text = "Tilt head " + instrDict[self.img_count] + "... [1]"
+                time.sleep(sleepTime)
+
                 cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', image)
                 self.img_count += 1
                

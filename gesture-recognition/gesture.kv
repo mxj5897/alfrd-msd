@@ -38,7 +38,13 @@ gestureWidget:
                 source: './assets/images/addUser.png'
         BoxLayout:
             orientation: 'vertical'
-            size_hint: [1, .20]
+            size_hint: [1, .05]
+            Label:
+                    id: addUserIntr
+                    text: 'Instructions for adding users...'
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint: [1, .15]
             GridLayout:
                 cols: 3
                 Label:
