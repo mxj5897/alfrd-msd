@@ -41,24 +41,7 @@ from kivy.properties import StringProperty, NumericProperty
 
 
 class AutoCaptureFacesPopup(BoxLayout):
-    instrDict = {
-        0 : "up",
-        1 : "up",
-        2 : "up and to the right",
-        3 : "up and to the right",
-        4 : "right",
-        5 : "right",
-        6 : "down and to the right",
-        7 : "down and to the right",
-        8 : "down",
-        9 : "down",
-        10 : "down and to the left",
-        11 : "down and to the left",
-        12 : "left",
-        13 : "left",
-        14 : "up and to the left",
-        15 : "up and to the left",
-    }
+    
     # Automatically adds users to the set of recognized users
     def __init__(self, **kwargs):
         super(AutoCaptureFacesPopup, self).__init__(**kwargs)
@@ -66,19 +49,36 @@ class AutoCaptureFacesPopup(BoxLayout):
         self.sensor = Sensors()
         self.sensor_method = self.sensor.get_method()
         self.img_count = 0
-        self.skip = True
-
-        # Clock.unschedule(self.update_recording)
+        self.counter = 0
+        # self.capture_image_flag = False
+        # self.skip = True
+        self.image = None
+        # self.keyboard = Window.request_keyboard(self._keyboard_closed, self)
+        # self.keyboard.bind(on_key_down=self.onKeyboardDown)
+        self.instrDict = {
+            0 : "up",
+            2 : "up and to the right",
+            4 : "right",
+            6 : "down and to the right",
+            8 : "down",
+            10 : "down and to the left",
+            12 : "left",
+            14 : "up and to the left",
+        }
         if self.sensor_method is not None:
             Clock.schedule_interval(self.liveFeed, 0.1)
         else:
             message = MessagePopup(str("Not connected to sensor"))
             message.open()
-        
+
+    # def _keyboard_closed(self):
+    #     self.keyboard.unbind(on_key_down=self.onKeyboardDown)
+    #     self.keyboard = None
+
     def liveFeed(self, btn):
-        image = self.sensor.get_sensor_information(self.sensor_method)
-        if image is not None:               
-            cv2.imwrite(constants.IMAGE_PATH+'addUser.png', image)
+        self.image = self.sensor.get_sensor_information(self.sensor_method)
+        if self.image is not None:               
+            cv2.imwrite(constants.IMAGE_PATH+'addUser.png', self.image)
             self.ids.addUser.reload()
         
     def start_recording(self):
@@ -113,12 +113,35 @@ class AutoCaptureFacesPopup(BoxLayout):
                         self.sensor_method = self.sensor.get_method()
 
                     if self.sensor_method is not None:
+                        print(1)
                         Clock.unschedule(self.liveFeed)
+                        # Clock.schedule_interval(self.updateInstructions, 0.1)
                         Clock.schedule_interval(self.autoCaptureFace, 0.1)
                     else:
                         message = MessagePopup(str("Not connected to sensor"))
                         message.open()
 
+    # def onKeyboardDown(self, keyboard, keycode, text, modifiers):
+    #     if keycode[1] == 'space' or keycode[1] == 'up':
+    #         # self.updateInstructions("1")
+    #         print("Hello World")
+            
+    # def updateInstructions(self, btn):
+    #     sleepTime = 2
+    #     # self.capture_image_flag = False
+    #     # self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + "... [3]"
+    #     # time.sleep(sleepTime)
+    #     # self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + "... [2]"
+    #     # time.sleep(sleepTime)
+    #     self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + " then press space to continue"
+    #     time.sleep(sleepTime)
+    #     # print("updateInstructions")
+    #     self.autoCaptureFace()
+    #     # self.capture_image_flag = True
+
+
+
+    
     def autoCaptureFace(self, btn):
         # Captures and writes facial files to disk
         if self.img_count >= constants.AVG_IMG_NUM_PER_USER:
@@ -129,28 +152,30 @@ class AutoCaptureFacesPopup(BoxLayout):
             message.open()
             return False
 
-        image = self.sensor.get_sensor_information(self.sensor_method)
+        self.image = self.sensor.get_sensor_information(self.sensor_method)
 
-        if image is not None and self.skip:
-            face_locations = self.faces.find_faces(image)
+        if self.image is not None:
+
+            face_locations = self.faces.find_faces(self.image)
             face_names = ['Unknown'] * len(face_locations) # required for draw_faces function
-            disp = self.faces.draw_faces(image, face_locations, face_names)
-
-            if face_locations is not None:
-                sleepTime = 1
-                self.ids.addUserIntr.text = "Tilt head " + instrDict[self.img_count] + "... [3]"
-                time.sleep(sleepTime)
-                self.ids.addUserIntr.text = "Tilt head " + instrDict[self.img_count] + "... [2]"
-                time.sleep(sleepTime)
-                self.ids.addUserIntr.text = "Tilt head " + instrDict[self.img_count] + "... [1]"
-                time.sleep(sleepTime)
-
-                cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', image)
-                self.img_count += 1
+            disp = self.faces.draw_faces(self.image, face_locations, face_names)
+         
+            if self.counter % 20 == 0:
+                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count]
+            elif self.counter % 20 == 5:
+                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count]
+            elif self.counter % 20 == 10:
+                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count]
+            elif self.counter % 20 == 15:
+                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count]
+    
+                cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', self.image)
+                cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count+1)+'.png', self.image)
+                self.img_count += 2
                
             cv2.imwrite(constants.IMAGE_PATH+'addUser.png', disp)
             self.ids.addUser.reload()
-        self.skip = not self.skip
+            self.counter += 1
 
 
 class AddGesturePopUp(BoxLayout):
@@ -528,9 +553,12 @@ class gestureWidget(Widget):
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
-        image = self.sensor.get_sensor_information(self.sensor_method)
+        # image = self.sensor.get_sensor_information(self.sensor_method)
+        image = cv2.imread('two_people_test.jpg')
         if image is not None:
             points = self.pose.get_points(self.pose_model,image)
+
+            print(points)
             if self.skip:
                 self.face_locations, self.face_names = self.faces.identify_faces(image)
                 print(self.face_names)
@@ -541,7 +569,7 @@ class gestureWidget(Widget):
                 
                 # Get identities if change in the number of humans (points) frame
                 if self.humans_in_environment != len(points):
-                   self.humans = self.pose.assign_face_to_pose(points, self.face_locations, self.face_names, im_height, im_width)
+                   self.humans = self.pose.assign_face_to_pose(points, self.humans, self.face_locations, self.face_names, im_height, im_width)
                    self.humans_in_environment = len(points)
                 else:
                 # Update the poses of each individual human in frame
@@ -571,6 +599,8 @@ class gestureWidget(Widget):
 
             if self.settings.ids.record_session.text == 'Display Auxilary Info: True':
                 self.VideoWriter.write(image)
+            
+            return False
 
     def playPause(self):
         # Defines behavior for play / pause button
