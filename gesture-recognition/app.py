@@ -38,7 +38,7 @@ from kivy.uix.button import Button
 from kivy.animation import Animation
 from kivy.properties import StringProperty, NumericProperty
 
-
+# TODO:: Sanitize all text inputs
 
 class AutoCaptureFacesPopup(BoxLayout):
     
@@ -50,11 +50,8 @@ class AutoCaptureFacesPopup(BoxLayout):
         self.sensor_method = self.sensor.get_method()
         self.img_count = 0
         self.counter = 0
-        # self.capture_image_flag = False
-        # self.skip = True
+        self.interval = 8
         self.image = None
-        # self.keyboard = Window.request_keyboard(self._keyboard_closed, self)
-        # self.keyboard.bind(on_key_down=self.onKeyboardDown)
         self.instrDict = {
             0 : "up",
             2 : "up and to the right",
@@ -71,14 +68,10 @@ class AutoCaptureFacesPopup(BoxLayout):
             message = MessagePopup(str("Not connected to sensor"))
             message.open()
 
-    # def _keyboard_closed(self):
-    #     self.keyboard.unbind(on_key_down=self.onKeyboardDown)
-    #     self.keyboard = None
-
     def liveFeed(self, btn):
-        self.image = self.sensor.get_sensor_information(self.sensor_method)
-        if self.image is not None:               
-            cv2.imwrite(constants.IMAGE_PATH+'addUser.png', self.image)
+        image = self.sensor.get_sensor_information(self.sensor_method)
+        if image is not None:               
+            cv2.imwrite(constants.IMAGE_PATH+'addUser.png', image)
             self.ids.addUser.reload()
         
     def start_recording(self):
@@ -86,11 +79,6 @@ class AutoCaptureFacesPopup(BoxLayout):
         if self.ids.start_recording.text == "Stop Recording":
             self.ids.start_recording.text = "Start Recording"
             self.ids.start_recording.background_color = [1,1,1,1]
-            self.sensor.__del__() # releases camera / kinect
-            
-            # Unschedule update function
-            # Clock.unschedule(self.update_recording)
-            # Clock.unschedule(self.liveFeed)
         else:
             # Set some button properties
             if self.ids.addUserLabel.text == "": # requires user name
@@ -113,65 +101,44 @@ class AutoCaptureFacesPopup(BoxLayout):
                         self.sensor_method = self.sensor.get_method()
 
                     if self.sensor_method is not None:
-                        print(1)
                         Clock.unschedule(self.liveFeed)
-                        # Clock.schedule_interval(self.updateInstructions, 0.1)
                         Clock.schedule_interval(self.autoCaptureFace, 0.1)
                     else:
                         message = MessagePopup(str("Not connected to sensor"))
                         message.open()
 
-    # def onKeyboardDown(self, keyboard, keycode, text, modifiers):
-    #     if keycode[1] == 'space' or keycode[1] == 'up':
-    #         # self.updateInstructions("1")
-    #         print("Hello World")
-            
-    # def updateInstructions(self, btn):
-    #     sleepTime = 2
-    #     # self.capture_image_flag = False
-    #     # self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + "... [3]"
-    #     # time.sleep(sleepTime)
-    #     # self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + "... [2]"
-    #     # time.sleep(sleepTime)
-    #     self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + " then press space to continue"
-    #     time.sleep(sleepTime)
-    #     # print("updateInstructions")
-    #     self.autoCaptureFace()
-    #     # self.capture_image_flag = True
-
-
-
-    
     def autoCaptureFace(self, btn):
         # Captures and writes facial files to disk
         if self.img_count >= constants.AVG_IMG_NUM_PER_USER:
             self.img_count = 0
+            self.ids.addUserIntr.text = "Done taking photos - creating user embeddings"
             self.ids.start_recording.background_color = [1,1,1,1]
             self.faces.make_dataset_embeddings()
             message = MessagePopup(str("Done adding new users"))
             message.open()
             return False
 
-        self.image = self.sensor.get_sensor_information(self.sensor_method)
+        image = self.sensor.get_sensor_information(self.sensor_method)
 
-        if self.image is not None:
+        if image is not None:
 
-            face_locations = self.faces.find_faces(self.image)
+            face_locations = self.faces.find_faces(image)
             face_names = ['Unknown'] * len(face_locations) # required for draw_faces function
-            disp = self.faces.draw_faces(self.image, face_locations, face_names)
+            disp = self.faces.draw_faces(image, face_locations, face_names)
          
-            if self.counter % 20 == 0:
+            if self.counter == 0:
+                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + ": 3 "
+            elif self.counter  == self.interval:
+                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + ": 2 "
+            elif self.counter  == self.interval*2:
+                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count] + ": 1 "
+            elif self.counter  == self.interval*3:
                 self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count]
-            elif self.counter % 20 == 5:
-                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count]
-            elif self.counter % 20 == 10:
-                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count]
-            elif self.counter % 20 == 15:
-                self.ids.addUserIntr.text = "Tilt head " + self.instrDict[self.img_count]
-    
-                cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', self.image)
-                cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count+1)+'.png', self.image)
+            elif self.counter  == self.interval*3+3:
+                cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count)+'.png', image)
+                cv2.imwrite(constants.FACE_DATASET_PATH+self.ids.addUserLabel.text+'/'+self.ids.addUserLabel.text+str(self.img_count+1)+'.png', image)
                 self.img_count += 2
+                self.counter = -1
                
             cv2.imwrite(constants.IMAGE_PATH+'addUser.png', disp)
             self.ids.addUser.reload()
@@ -254,6 +221,7 @@ class AddGesturePopUp(BoxLayout):
         if len(self.temp_queue) >= constants.QUEUE_MAX_SIZE:
             self.ids.start_recording.background_color = [1,1,1,1]
             self.ids.start_recording.disabled = False
+            Clock.schedule_interval(self.liveFeed, 0.1)
             return False
 
         image = self.sensor.get_sensor_information(self.sensor_method)

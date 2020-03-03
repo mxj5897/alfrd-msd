@@ -27,9 +27,13 @@ class faceRecognition():
 
     def create_embedding(self, image):
         # Creates a facial emebedding for individual images
-        load_image = face_recognition.load_image_file(image)
-        encoding = face_recognition.face_encodings(load_image)[0]
-        return encoding
+        try:
+            load_image = face_recognition.load_image_file(image)
+            encoding = face_recognition.face_encodings(load_image)[0]
+            return encoding
+        except:
+            face_logger.error('Could not create facial encoding for %s' % image)
+            return None
 
     def load_user(self, directory):
         # Calls create_embedding to make embeddings for directory
@@ -37,7 +41,8 @@ class faceRecognition():
         for filename in os.listdir(directory):
             path = directory + filename
             face = self.create_embedding(path)
-            faces.append(face)
+            if face is not None:
+                faces.append(face)
         return (faces)
 
     def load_dataset(self, directory):
@@ -45,7 +50,6 @@ class faceRecognition():
         x, y = list(), list()
         for subdir in os.listdir(directory):
             path = directory + subdir + '/'
-
             if not os.path.isdir(path):
                 continue
 
@@ -68,7 +72,6 @@ class faceRecognition():
             # Save out facial ecnoding date for future use
             np.save(constants.FACE_ENCODINGS_PATH, encodings)
             np.save(constants.FACE_NAMES_PATH, names)
-            print("Done")
         except:
             face_logger.error('Could not create facial encodings. Check to ensure face dataset is in the correct location')
 
