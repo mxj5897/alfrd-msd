@@ -521,27 +521,24 @@ class gestureWidget(Widget):
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
-        # image = self.sensor.get_sensor_information(self.sensor_method)
-        image = cv2.imread('two_people_test.jpg')
+        image = self.sensor.get_sensor_information(self.sensor_method)
+        # image = cv2.imread('two_people_test.jpg')
         if image is not None:
             points = self.pose.get_points(self.pose_model,image)
+            print("got points")
 
-            print(points)
+            # print(points)
             if self.skip:
                 self.face_locations, self.face_names = self.faces.identify_faces(image)
-                print(self.face_names)
             self.skip = not self.skip
 
             if points is not None and self.face_names is not None and self.face_locations is not None:
                 im_height, im_width = image.shape[:2]
+                print("gets height width")
                 
-                # Get identities if change in the number of humans (points) frame
-                if self.humans_in_environment != len(points):
-                   self.humans = self.pose.assign_face_to_pose(points, self.humans, self.face_locations, self.face_names, im_height, im_width)
-                   self.humans_in_environment = len(points)
-                else:
-                # Update the poses of each individual human in frame
-                    self.humans = self.pose.update_human_poses(points, self.face_locations, self.face_names, self.humans, im_width, im_height)
+                # Assigns identities and skeletons to human object
+                self.humans = self.pose.assign_face_to_pose(points, self.humans, self.face_locations, self.face_names, im_height, im_width)
+                print("Gets humans")
                 
                 if self.humans is not None:
                     # Plot user identities and (optional) poses
@@ -561,14 +558,13 @@ class gestureWidget(Widget):
                         #     message = MessagePopup(str("Prediction is" + human.prediction))
                         #     message.open()
                         #TODO:: Calls to Robot.py
+                print("PLOTS")
                         
             cv2.imwrite(constants.IMAGE_PATH+'foo.png', image) 
             self.ids.image_source.reload()
 
             if self.settings.ids.record_session.text == 'Display Auxilary Info: True':
                 self.VideoWriter.write(image)
-            
-            return False
 
     def playPause(self):
         # Defines behavior for play / pause button

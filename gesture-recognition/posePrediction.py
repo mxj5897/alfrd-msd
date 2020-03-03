@@ -129,13 +129,36 @@ class Poses():
             pose_logger.warning("Error plotting human skeleton")
             return None
 
-    def assign_face_to_pose(self,points, face_locations, face_names, height, width):
-        # This function should only be called when the number of skeletons in the image changes
-        # Assumes that that number of skeletons in the frame will always
-        # be greater than or equal to the number of faces
-        if points == [] or face_locations is None or face_names is None:
+    def assign_face_to_pose(self, humans, points, face_locations, face_names, height, width):
+        # Assigns faces and skeletons to human objects
+        if points is None or humans is None or face_locations is None or face_names is None:
             return None
-        humans = []
+
+        points_to_add = []
+        # map(humans, points, face_locations, face_names) => updated_humans, indices, flag="remove" / "add"
+        flag, indices = self.update_human_poses(points, face_locations, face_names, humans, width, height)
+        if flag == "add":
+            for point in points:
+                if point not in list(indices.values()):
+                    points_to_add.append(point)
+
+            humans = self.create_users(points_to_add, face_locations, face_names, list(indices.keys()))
+        elif flag == "remove":
+            humans = self.delete_users(indices)
+        return humans
+    
+
+    def delete_users(indices):
+        # Deletes users who have left the frame
+        for key, value in indices:
+            if value == 0:
+                del indices[key]
+        
+        return list(indices.keys())
+
+
+    def create_users(points, face_locations, face_names, humans, indices):
+        # Adds users who enter the frame
         for person in points:
             human = Humans()
             human.identity = "Unknown"
@@ -159,12 +182,25 @@ class Poses():
         # Minimizes the distance between the poses of each human between frames
         # Does not account for overlapping humans in frames
 	    #TODO:: Add proximity test to determine how close humans are in environment??
-        if points == [] or humans is None:
-            return None
+        if points is None or humans is None :
+            return None, None
 
+        # Index of human points haven't been identified
+        pnt_used = {}
+
+        # Set flag
+        if len(points) > len(humans):
+            flag = "add"
+        elif len(points) < len(humans):
+            flag = "remove"
+        else:
+            flag = "constant"
+
+        # Cost function mapping  humans
         for human in humans:
             min_dist_cost = 0
-            for pnt in points:
+            pnt_used[human.identity] = 0
+            for a, pnt in enumerate(points):
                 dist_cost = 0
                 for i in constants.POINTS:
                     if i in human.current_pose.keys() and i in pnt.keys():
@@ -173,10 +209,12 @@ class Poses():
                         dist_cost += 0
                     else:
                         dist_cost += .1
-                if min_dist_cost == 0 or min_dist_cost > dist_cost:
+                if min_dist_cost == 0 or min_dist_cost > dist_cost: # add threshold value here
                     min_dist_cost = dist_cost
                     human.current_pose = pnt
+                    pnt_used[human.identity] = pnt
 
+            # Continuously scan for face identities
             for ind in [0, 15, 16]:
                 if ind not in human.current_pose.keys() or human.identity != "Unknown":
                     continue
@@ -187,4 +225,7 @@ class Poses():
                     if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
                         if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
                             human.identity = name
-        return humans
+
+        print('Flag is: %s' % flag)
+        print([human.identity for human in list(pnt_used.keys())])
+        return flag, pnt_used
