@@ -230,28 +230,31 @@ class Poses():
                 print(human.current_pose)
                 pnt_used[a] = [None, human]
                 for pnt in points:
+                    pose_logger.warning("The pose is")
                     pose_logger.warning(pnt)
                     print(pnt)
                     dist_cost = 0
                     for i in constants.POINTS:
                         if human.current_pose[i] != [0,0] and pnt[i] != [0,0]:
-                            dist_cost += abs(human.current_pose[i][0] - pnt[i][0]) + abs(human.current_pose[i][1] - pnt[i][1])
-                            print("The cost is %.2f" % dist_cost)
-                            pose_logger.warning("The cost is %.2f" % dist_cost)
+                            dist_cost += (width*(human.current_pose[i][0] - pnt[i][0]))**2 + (height*(human.current_pose[i][1] - pnt[i][1]))**2
+                            pose_logger.warning("cost: %.2f = (%.2f*(%.2f - %.2f))^2 + (%.2f*(%.2f - %.2f))^2" % (dist_cost, width, human.current_pose[i][0], pnt[i][0],  height, human.current_pose[i][1], pnt[i][1] ) )                            
                             
                         elif(human.current_pose[i] == [0,0] and pnt[i] == [0,0]):
                             dist_cost += 0
                         else:
-                            dist_cost += .001
-                            print("The cost is %.2f" % dist_cost)
+                            # dist_cost += .001
                             pose_logger.warning(human.current_pose)
-                    print("The final cost is %.2f" % dist_cost)
-                    pose_logger.warning("The final cost is %.2f" % dist_cost)
-                    if min_dist_cost == 0 or min_dist_cost > dist_cost: # add threshold value here
+                    
+                    if min_dist_cost == 0 or (min_dist_cost > dist_cost and dist_cost < 100000000): # add threshold value here
                         min_dist_cost = dist_cost
-                        human.current_pose = pnt
+                        best_pnt = pnt
                         pnt_used[a] = [pnt, human]
-
+                human.current_pose = best_pnt
+            
+                pose_logger.warning("The final pose is: ")
+                pose_logger.warning(human.current_pose)
+                print("The final cost is %.2f" % dist_cost)
+                pose_logger.warning("The final cost is %.2f" % dist_cost)
                 # Continuously scan for face identities
                 for ind in [0, 15, 16]:
                     if ind not in human.current_pose.keys() or human.identity != "Unknown":
