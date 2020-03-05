@@ -533,8 +533,7 @@ class gestureWidget(Widget):
 
             if points is not None and self.face_names is not None and self.face_locations is not None:
                 im_height, im_width = image.shape[:2]
-                print("The points are:")
-                print(points)
+      
                 # Assigns identities and skeletons to human object
                 self.humans = self.pose.assign_face_to_pose(points, self.humans, self.face_locations, self.face_names, im_height, im_width)
                 if self.humans is not None:

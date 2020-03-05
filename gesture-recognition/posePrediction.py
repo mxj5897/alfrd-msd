@@ -109,10 +109,8 @@ class Poses():
                 return image
             
             centers = {}
-            print("1: %s" % len(humans))
             for human in humans:
                 #draw points
-                print(human.current_pose)
                 for i in constants.POINTS:
                     if human.current_pose[i] == [0,0]:
                         continue
@@ -137,12 +135,9 @@ class Poses():
             if points is None or face_locations is None or face_names is None:
                 return []
             points_to_add = []
-            # map(humans, points, face_locations, face_names) => updated_humans, indices, flag="remove" / "add"
             flag, indices = self.update_human_poses(points, face_locations, face_names, humans, width, height)
             if list(indices.values()) == [] and flag != "add":
-                print("1")
                 return []
-
             new_points = [item[0] for item in list(indices.values())]
             new_humans = [item[1] for item in list(indices.values())]
 
@@ -152,24 +147,24 @@ class Poses():
                         points_to_add.append(point)
 
                 humans = self.create_users(points_to_add, face_locations, face_names, new_humans, height, width)
-            elif flag == "remove":
-                humans = self.delete_users(new_humans, new_points)
+            elif flag == "remove":             
+                humans = self.remove_users(new_humans, new_points)
             elif flag == "constant":
                 humans = new_humans
 
             return humans
         except Exception as e:
-            # pose_logger.warning("Could not create humans object")
+            pose_logger.warning("Could not create humans object")
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print(exc_type, fname, exc_tb.tb_lineno)
             return []
-    
 
-    def delete_users(self, humans, points):
+
+    def remove_users(self, humans, points):
         # Deletes users who have left the frame
         for i, human in enumerate(humans):
-            if points[i] == 0:
+            if points[i] is None:
                 del humans[i]
         
         return humans
@@ -224,37 +219,27 @@ class Poses():
             # Cost function mapping  humans
             for a, human in enumerate(humans):
                 min_dist_cost = 0
-                print("Human:  %.2f " % a)
-                pose_logger.warning("Human:  %.2f " % a)
-                pose_logger.warning(human.current_pose)
-                print(human.current_pose)
+       
                 pnt_used[a] = [None, human]
                 for pnt in points:
-                    pose_logger.warning("The pose is")
-                    pose_logger.warning(pnt)
-                    print(pnt)
                     dist_cost = 0
                     for i in constants.POINTS:
                         if human.current_pose[i] != [0,0] and pnt[i] != [0,0]:
-                            dist_cost += (width*(human.current_pose[i][0] - pnt[i][0]))**2 + (height*(human.current_pose[i][1] - pnt[i][1]))**2
-                            pose_logger.warning("cost: %.2f = (%.2f*(%.2f - %.2f))^2 + (%.2f*(%.2f - %.2f))^2" % (dist_cost, width, human.current_pose[i][0], pnt[i][0],  height, human.current_pose[i][1], pnt[i][1] ) )                            
+                            dist_cost += ((human.current_pose[i][0] - pnt[i][0]))**2 + ((human.current_pose[i][1] - pnt[i][1]))**2
                             
                         elif(human.current_pose[i] == [0,0] and pnt[i] == [0,0]):
                             dist_cost += 0
                         else:
-                            # dist_cost += .001
-                            pose_logger.warning(human.current_pose)
+                            dist_cost += .1
                     
-                    if min_dist_cost == 0 or (min_dist_cost > dist_cost and dist_cost < 100000000): # add threshold value here
+                    if (min_dist_cost == 0 or min_dist_cost > dist_cost) and dist_cost < 1: 
                         min_dist_cost = dist_cost
                         best_pnt = pnt
                         pnt_used[a] = [pnt, human]
+                pose_logger.warning(min_dist_cost)
                 human.current_pose = best_pnt
             
-                pose_logger.warning("The final pose is: ")
-                pose_logger.warning(human.current_pose)
-                print("The final cost is %.2f" % dist_cost)
-                pose_logger.warning("The final cost is %.2f" % dist_cost)
+
                 # Continuously scan for face identities
                 for ind in [0, 15, 16]:
                     if ind not in human.current_pose.keys() or human.identity != "Unknown":
@@ -269,7 +254,7 @@ class Poses():
 
             return flag, pnt_used
         except Exception as e:
-            # pose_logger.warning("Could not create humans object")
+            pose_logger.warning("Could not create humans object")
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print(exc_type, fname, exc_tb.tb_lineno)
