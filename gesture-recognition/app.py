@@ -525,8 +525,6 @@ class gestureWidget(Widget):
         # image = cv2.imread('two_people_test.jpg')
         if image is not None:
             points = self.pose.get_points(self.pose_model,image)
-            print("got points")
-
             # print(points)
             if self.skip:
                 self.face_locations, self.face_names = self.faces.identify_faces(image)
@@ -534,12 +532,10 @@ class gestureWidget(Widget):
 
             if points is not None and self.face_names is not None and self.face_locations is not None:
                 im_height, im_width = image.shape[:2]
-                print("gets height width")
-                
+                print("The points are:")
+                print(points)
                 # Assigns identities and skeletons to human object
                 self.humans = self.pose.assign_face_to_pose(points, self.humans, self.face_locations, self.face_names, im_height, im_width)
-                print("Gets humans")
-                
                 if self.humans is not None:
                     # Plot user identities and (optional) poses
                     image = self.pose.plot_faces(image, self.humans, im_height, im_width)
@@ -558,7 +554,6 @@ class gestureWidget(Widget):
                         #     message = MessagePopup(str("Prediction is" + human.prediction))
                         #     message.open()
                         #TODO:: Calls to Robot.py
-                print("PLOTS")
                         
             cv2.imwrite(constants.IMAGE_PATH+'foo.png', image) 
             self.ids.image_source.reload()

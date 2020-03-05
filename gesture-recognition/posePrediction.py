@@ -6,7 +6,7 @@
 ########################################################################################################################
 import argparse
 import time
-
+import sys, os
 import cv2
 import numpy as np
 from human import Humans
@@ -95,8 +95,8 @@ class Poses():
 
                 head = [human.current_pose[0][0]*image_w, human.current_pose[0][1]*image_h]
                 image = cv2.putText(image, human.identity, (int(head[0]) + 6, int(head[1]) + 6), font, 1.0, (0, 255, 255), 1)
-                y = y0 + dt * i
-                image = cv2.putText(image, human.identity,(10,y), font, 0.5, (0,0,0),1)
+            y = y0 + dt * i
+            image = cv2.putText(image, human.identity,(10,y), font, 0.5, (0,0,0),1)
         return image
 
     def plot_pose(self, image, humans,image_h, image_w):
@@ -109,8 +109,10 @@ class Poses():
                 return image
             
             centers = {}
+            print("1: %s" % len(humans))
             for human in humans:
                 #draw points
+                print(human.current_pose)
                 for i in constants.POINTS:
                     if human.current_pose[i] == [0,0]:
                         continue
@@ -129,103 +131,143 @@ class Poses():
             pose_logger.warning("Error plotting human skeleton")
             return None
 
-    def assign_face_to_pose(self, humans, points, face_locations, face_names, height, width):
-        # Assigns faces and skeletons to human objects
-        if points is None or humans is None or face_locations is None or face_names is None:
-            return None
+    def assign_face_to_pose(self, points ,humans ,face_locations, face_names, height, width):
+        try:
+            # Assigns faces and skeletons to human objects
+            if points is None or face_locations is None or face_names is None:
+                return []
+            points_to_add = []
+            # map(humans, points, face_locations, face_names) => updated_humans, indices, flag="remove" / "add"
+            flag, indices = self.update_human_poses(points, face_locations, face_names, humans, width, height)
+            if list(indices.values()) == [] and flag != "add":
+                print("1")
+                return []
 
-        points_to_add = []
-        # map(humans, points, face_locations, face_names) => updated_humans, indices, flag="remove" / "add"
-        flag, indices = self.update_human_poses(points, face_locations, face_names, humans, width, height)
-        if flag == "add":
-            for point in points:
-                if point not in list(indices.values()):
-                    points_to_add.append(point)
+            new_points = [item[0] for item in list(indices.values())]
+            new_humans = [item[1] for item in list(indices.values())]
 
-            humans = self.create_users(points_to_add, face_locations, face_names, list(indices.keys()))
-        elif flag == "remove":
-            humans = self.delete_users(indices)
-        return humans
+            if flag == "add":
+                for point in points:
+                    if point not in new_points:
+                        points_to_add.append(point)
+
+                humans = self.create_users(points_to_add, face_locations, face_names, new_humans, height, width)
+            elif flag == "remove":
+                humans = self.delete_users(new_humans, new_points)
+            elif flag == "constant":
+                humans = new_humans
+
+            return humans
+        except Exception as e:
+            # pose_logger.warning("Could not create humans object")
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            return []
     
 
-    def delete_users(indices):
+    def delete_users(self, humans, points):
         # Deletes users who have left the frame
-        for key, value in indices:
-            if value == 0:
-                del indices[key]
+        for i, human in enumerate(humans):
+            if points[i] == 0:
+                del humans[i]
         
-        return list(indices.keys())
+        return humans
 
 
-    def create_users(points, face_locations, face_names, humans, indices):
+    def create_users(self, points, face_locations, face_names, humans, height, width):
         # Adds users who enter the frame
-        for person in points:
-            human = Humans()
-            human.identity = "Unknown"
-            human.current_pose = person
+        try:
             
-            for i in [0,15,16]: # the points on the skeleton corresponding to the face
-                if i not in person.keys():
-                    continue
+            for person in points:
+                human = Humans()
+                human.identity = "Unknown"
+                human.current_pose = person
+                for i in [0,15,16]: # the points on the skeleton corresponding to the face
+                    if i not in person.keys():
+                        continue
 
-                target_body_part = person[i]
-      
-                for (top, right, bottom, left), name in zip(face_locations, face_names):
-                    if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
-                        if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
-                            human.identity = name
+                    target_body_part = person[i]
+        
+                    for (top, right, bottom, left), name in zip(face_locations, face_names):
+                        if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
+                            if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
+                                human.identity = name
 
                 humans.append(human)
-        return humans
+            return humans
+        except Exception as e:
+            # pose_logger.warning("Could not create humans object")
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            return []
 
     def update_human_poses(self, points, face_locs, face_names, humans, width, height):
         # Minimizes the distance between the poses of each human between frames
         # Does not account for overlapping humans in frames
 	    #TODO:: Add proximity test to determine how close humans are in environment??
-        if points is None or humans is None :
-            return None, None
+        try:
+            if points is None or humans is None:
+                return None, {}
+            # Index of human points haven't been identified
+            pnt_used = {}
 
-        # Index of human points haven't been identified
-        pnt_used = {}
+            # Set flag
+            if  len(points) > len(humans):
+                flag = "add"
+            elif len(points) < len(humans):
+                flag = "remove"
+            else:
+                flag = "constant"
 
-        # Set flag
-        if len(points) > len(humans):
-            flag = "add"
-        elif len(points) < len(humans):
-            flag = "remove"
-        else:
-            flag = "constant"
+            # Cost function mapping  humans
+            for a, human in enumerate(humans):
+                min_dist_cost = 0
+                print("Human:  %.2f " % a)
+                pose_logger.warning("Human:  %.2f " % a)
+                pose_logger.warning(human.current_pose)
+                print(human.current_pose)
+                pnt_used[a] = [None, human]
+                for pnt in points:
+                    pose_logger.warning(pnt)
+                    print(pnt)
+                    dist_cost = 0
+                    for i in constants.POINTS:
+                        if human.current_pose[i] != [0,0] and pnt[i] != [0,0]:
+                            dist_cost += abs(human.current_pose[i][0] - pnt[i][0]) + abs(human.current_pose[i][1] - pnt[i][1])
+                            print("The cost is %.2f" % dist_cost)
+                            pose_logger.warning("The cost is %.2f" % dist_cost)
+                            
+                        elif(human.current_pose[i] == [0,0] and pnt[i] == [0,0]):
+                            dist_cost += 0
+                        else:
+                            dist_cost += .001
+                            print("The cost is %.2f" % dist_cost)
+                            pose_logger.warning(human.current_pose)
+                    print("The final cost is %.2f" % dist_cost)
+                    pose_logger.warning("The final cost is %.2f" % dist_cost)
+                    if min_dist_cost == 0 or min_dist_cost > dist_cost: # add threshold value here
+                        min_dist_cost = dist_cost
+                        human.current_pose = pnt
+                        pnt_used[a] = [pnt, human]
 
-        # Cost function mapping  humans
-        for human in humans:
-            min_dist_cost = 0
-            pnt_used[human.identity] = 0
-            for a, pnt in enumerate(points):
-                dist_cost = 0
-                for i in constants.POINTS:
-                    if i in human.current_pose.keys() and i in pnt.keys():
-                        dist_cost += abs(human.current_pose[i][0] - pnt[i][0]) + abs(human.current_pose[i][1] - pnt[i][1])
-                    elif(i not in human.current_pose.keys() and i not in pnt.keys()):
-                        dist_cost += 0
-                    else:
-                        dist_cost += .1
-                if min_dist_cost == 0 or min_dist_cost > dist_cost: # add threshold value here
-                    min_dist_cost = dist_cost
-                    human.current_pose = pnt
-                    pnt_used[human.identity] = pnt
+                # Continuously scan for face identities
+                for ind in [0, 15, 16]:
+                    if ind not in human.current_pose.keys() or human.identity != "Unknown":
+                        continue
+                    
+                    target_body_part = human.current_pose[ind]
 
-            # Continuously scan for face identities
-            for ind in [0, 15, 16]:
-                if ind not in human.current_pose.keys() or human.identity != "Unknown":
-                    continue
-                
-                target_body_part = human.current_pose[ind]
+                    for (top, right, bottom, left), name in zip(face_locs, face_names):
+                        if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
+                            if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
+                                human.identity = name
 
-                for (top, right, bottom, left), name in zip(face_locs, face_names):
-                    if target_body_part[0]*width >= left*4 and target_body_part[0]*width <= right*4:
-                        if target_body_part[1]*height <= bottom*4 and target_body_part[1]*height >= top*4:
-                            human.identity = name
-
-        print('Flag is: %s' % flag)
-        print([human.identity for human in list(pnt_used.keys())])
-        return flag, pnt_used
+            return flag, pnt_used
+        except Exception as e:
+            # pose_logger.warning("Could not create humans object")
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            return []
