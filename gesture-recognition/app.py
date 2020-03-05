@@ -521,8 +521,9 @@ class gestureWidget(Widget):
 
     def update(self, sensor):
         # Main loop of the code - finds individuals, and identifies gestures
-        image = self.sensor.get_sensor_information(self.sensor_method)
-        # image = cv2.imread('two_people_test.jpg')
+        # image = self.sensor.get_sensor_information(self.sensor_method)
+        # image = cv2.imread(constants.IMAGE_PATH + 'two_people.jpg') # This works
+        ret, image = self.cap.read()
         if image is not None:
             points = self.pose.get_points(self.pose_model,image)
             # print(points)
@@ -577,6 +578,7 @@ class gestureWidget(Widget):
             
             if self.sensor_method is not None:
                 self.VideoWriter = cv2.VideoWriter('./tests/output.avi', self.fourcc, 5.0, (640,480))
+                self.cap = cv2.VideoCapture('test_vid.mp4')
                 self.ids.status.text = "Stop"
                 self.ids.status.background_color = [0,1,1,1]
                 self.skip = True
