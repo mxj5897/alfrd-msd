@@ -40,8 +40,8 @@ gestureWidget:
             orientation: 'vertical'
             size_hint: [1, .05]
             Label:
-                    id: addUserIntr
-                    text: 'Instructions for adding users...'
+                id: addUserIntr
+                text: 'Instructions for adding users...'
         BoxLayout:
             orientation: 'vertical'
             size_hint: [1, .15]
@@ -110,6 +110,10 @@ gestureWidget:
             text: 'Record Session: False'
             id: record_session
             on_press: root.recordSession()
+            bold: True
+        Button:
+            text: 'Set Robot Actions'
+            on_press: root.robot_actions()
             bold: True
         Button:
             text: 'Available Gestures'

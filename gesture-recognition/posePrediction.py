@@ -96,7 +96,7 @@ class Poses():
                 head = [human.current_pose[0][0]*image_w, human.current_pose[0][1]*image_h]
                 image = cv2.putText(image, human.identity, (int(head[0]) + 6, int(head[1]) + 6), font, 1.0, (0, 255, 255), 1)
             y = y0 + dt * i
-            image = cv2.putText(image, human.identity,(10,y), font, 0.5, (0,0,0),1)
+            image = cv2.putText(image, human.identity ,(10,y), font, 0.5, (0,0,0),1)
         return image
 
     def plot_pose(self, image, humans,image_h, image_w):
@@ -192,7 +192,7 @@ class Poses():
                 humans.append(human)
             return humans
         except Exception as e:
-            # pose_logger.warning("Could not create humans object")
+            pose_logger.warning("Could not create humans object")
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print(exc_type, fname, exc_tb.tb_lineno)
@@ -236,7 +236,6 @@ class Poses():
                         min_dist_cost = dist_cost
                         best_pnt = pnt
                         pnt_used[a] = [pnt, human]
-                pose_logger.warning(min_dist_cost)
                 human.current_pose = best_pnt
             
 

@@ -42,11 +42,12 @@ class Sensors():
                 camera_video = self.get_camera_video()
                 if camera_video is not None:
                     return "camera"
+            return None
         except:
             sensor_logger.fatal('No available sensors detected, terminating application')
             return None
 
-    def switch_method(self, currentMethod):
+    def switch_method(self, currentMethod, switch=False):
         try:
             if currentMethod == 'kinect':
                 self.set_camera(0)

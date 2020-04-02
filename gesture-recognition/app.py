@@ -15,6 +15,7 @@ import numpy as np
 from faceRecognition import faceRecognition
 from gestureSensor import Sensors
 from posePrediction import Poses
+from robot import Robot
 from kivy.core.window import Window
 
 from gestureClassification import Classify
@@ -231,7 +232,7 @@ class AddGesturePopUp(BoxLayout):
             points = self.pose.get_points(self.pose_model,image)
 
             # plot points for user feedback
-            humans = self.pose.assign_face_to_pose(points, [], [], im_height, im_width)
+            humans = self.pose.assign_face_to_pose(points, [], [], [], im_height, im_width)
             image = self.pose.plot_pose(image,humans, im_height, im_width)
 
             if points is not None:
@@ -261,6 +262,7 @@ class SettingsPopUp(BoxLayout):
         super(SettingsPopUp, self).__init__(**kwargs)
         self.faces = faceRecognition()
         self.sensor = Sensors()
+        self.robot = Robot()
         self.classify = Classify()
         self.gesture = None
         self.index = 0
@@ -487,6 +489,10 @@ class SettingsPopUp(BoxLayout):
             self.ids.record_session.text = 'Record Session: False'
             self.ids.record_session.background_color = [1, 1, 1, 1]
 
+    # TODO:: Add popup to set robot actions
+    def robot_actions(self):
+        pass
+
     def closePopup1(self, btn):
         # Closes secondary popup
         self.popup1.dismiss()
@@ -500,11 +506,12 @@ class gestureWidget(Widget):
         self.play = False
         self.sensor = Sensors()
         self.pose = Poses()
+        self.robot = Robot()
         self.faces = faceRecognition()
         self.classify = Classify()
         self.pose_model = self.pose.get_model()
         self.humans_in_environment = 0
-        self.sensor_method = None #self.sensor.get_method()
+        self.sensor_method = None
         self.aux_info = False
         self.skip = True
         self.face_locations = None
@@ -520,13 +527,15 @@ class gestureWidget(Widget):
             shutil.copy(constants.IMAGE_PATH+'foo1.png', constants.IMAGE_PATH+'foo.png')
 
     def update(self, sensor):
-        # Main loop of the code - finds individuals, and identifies gestures
-        # image = self.sensor.get_sensor_information(self.sensor_method)
-        # image = cv2.imread(constants.IMAGE_PATH + 'two_people.jpg') # This works
-        ret, image = self.cap.read()
+        # Main loop of the code
+        image = self.sensor.get_sensor_information(self.sensor_method)
+        # ret, image = self.cap.read()
+
         if image is not None:
+            # Get pose / joint information
             points = self.pose.get_points(self.pose_model,image)
-            # print(points)
+
+            # Get facial information
             if self.skip:
                 self.face_locations, self.face_names = self.faces.identify_faces(image)
             self.skip = not self.skip
@@ -536,25 +545,27 @@ class gestureWidget(Widget):
       
                 # Assigns identities and skeletons to human object
                 self.humans = self.pose.assign_face_to_pose(points, self.humans, self.face_locations, self.face_names, im_height, im_width)
+                
                 if self.humans is not None:
+
                     # Plot user identities and (optional) poses
                     image = self.pose.plot_faces(image, self.humans, im_height, im_width)
                     if self.settings.ids.aux_info.text == 'Display Auxilary Info: True':
                         image = self.pose.plot_pose(image, self.humans, im_height, im_width)
 
                     # Update each respective queue and classify gestures
-                    for human in self.humans:
-                        if human.identity == "Unknown":
-                             continue
+                    image = cv2.putText(image, "The prediction is:", (im_width-175, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0,0,0), 1)
+                    for i, human in enumerate(self.humans):
+                        # if human.identity == "Unknown":
+                        #      continue
 
-                        # human.classify.add_to_queue(list(human.current_pose.items()))
+                        human.classify.add_to_queue(human.current_pose)
+                        human.prediction = human.classify.classify_gesture()
+                        image = cv2.putText(image, human.prediction, (im_width-175, 45 + i*15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0), 1)
 
-                        # human.prediction = human.classify.classify_gesture()
-                        # if human.prediction != "Unknown":
-                        #     message = MessagePopup(str("Prediction is" + human.prediction))
-                        #     message.open()
-                        #TODO:: Calls to Robot.py
-                        
+                        # Make call to robot
+                        self.robot.determine_robot_response(human.identity, human.prediction)
+
             cv2.imwrite(constants.IMAGE_PATH+'foo.png', image) 
             self.ids.image_source.reload()
 

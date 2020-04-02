@@ -37,25 +37,28 @@ class Classify():
         # Load in csv files
         with open(path) as file:
             reader = csv.reader(file, delimiter=';')
-            file_array = [row for row in reader]
+            file_array = [row[0] for row in reader]
             if path == constants.GESTURE_LABELS:
                 return file_array
-        file_array = [ast.literal_eval(fil_arr[0]) for fil_arr in file_array]
-        array = []
-        for arr in file_array:
-            temp_arr = []
-            for i in range(constants.QUEUE_MAX_SIZE):
-                temp = np.array(list(arr[i][0].items()))
-                temp = [tp[1] for tp in temp]
-                temp_arr.append(self.normalize_pose(temp))
-            array.append(temp_arr)
-        return array
+
+        file_array = [ast.literal_eval(arr) for arr in file_array]
+
+        # Preallocate numpy array
+        gesture_array = np.zeros((len(file_array), constants.QUEUE_MAX_SIZE, len(constants.POINTS), 2))
+
+        for i, gesture in enumerate(file_array):
+            for j, pose in enumerate(gesture):
+                
+                # Assign to gesture
+                gesture_array[i][j] = self.normalize_pose(np.array([val for key, val in pose[0].items()]))
+
+        return gesture_array
 
     def update_dictionary(self):
         # Load the contents of the csv files into memory
         try:
-            self.dictionary_gestures = self.read_in_file(constants.GESTURE_DICTIONARY)
             self.dictionary_labels = self.read_in_file(constants.GESTURE_LABELS)
+            self.dictionary_gestures = self.read_in_file(constants.GESTURE_DICTIONARY)
         except:
             classification_logger.warning('Could not update the dictionary')
 
@@ -73,7 +76,7 @@ class Classify():
         try:
             with open(constants.GESTURE_DICTIONARY, 'a') as g_file:
                 g_writer = csv.writer(g_file, delimiter=';')
-                g_writer.writerow([gesture])
+                g_writer.writerow(gesture)
             with open(constants.GESTURE_LABELS, 'a') as l_file:
                 l_writer = csv.writer(l_file, delimiter=';')
                 l_writer.writerow([label])
@@ -87,10 +90,8 @@ class Classify():
             if len(self.gesture_queue) >= constants.QUEUE_MAX_SIZE:
                 self.delete_from_queue()
 
-            # Convert to correct format
-            item = np.array(item)
-            item = [gest[1] for gest in gesture]
-            
+            item = np.array([val for key, val in item.items()])
+
             # normalize pose and add to list
             self.gesture_queue.append(self.normalize_pose(item))
         except:
@@ -106,8 +107,9 @@ class Classify():
     def normalize_pose(self, gesture):
         # Coordinate transform of the skeleton > the nose (pose[0]) is the new origin        
         try:
-            for i in constants.POINTS:
-                pose[i] = [np.linalg.norm(np.array(pose[0][0])-np.array(pose[i][0])), np.linalg.norm(np.array(pose[0][1])-np.array(pose[i][1]))]
+            for i in range(gesture.shape[0]-1, -1, -1):
+                gesture[i][0] = np.linalg.norm(gesture[0][0] - gesture[i][0])
+                gesture[i][1] = np.linalg.norm(gesture[0][1] - gesture[i][1])
             return gesture
         except:
             classification_logger.warning("Could not normalize pose")
@@ -119,22 +121,20 @@ class Classify():
             best_distance = -1
 
             if len(self.gesture_queue) != constants.QUEUE_MAX_SIZE:
-                return "unknown"
-
+                return prediction
+            
             if self.dictionary_gestures is None and self.dictionary_labels is None:
                 self.update_dictionary()
 
-            # Reshape gesture queue to be passed into fastdtw
-            ind2 = np.shape(np.array(self.gesture_queue))[1]
-            ind3 = np.shape(np.array(self.gesture_queue))[2]
-            queue = np.array(self.gesture_queue).reshape(constants.POINTS,ind2*ind3)
             
-
+            # Reshape gesture queue to be passed into fastdtw
+            queue = np.array(self.gesture_queue).reshape(constants.QUEUE_MAX_SIZE, len(constants.POINTS)*2)
+            
             for pred, gesture in zip(self.dictionary_labels, self.dictionary_gestures):
 
-                gesture = np.array(gesture).reshape(constants.Points,ind2*ind3)
+                gesture = np.array(gesture).reshape(constants.QUEUE_MAX_SIZE, len(constants.POINTS)*2)
                 distance, path = fastdtw(queue, gesture)
-                print(distance)
+
                 if best_distance < distance or best_distance == -1:
                     best_distance = distance
                     prediction = pred
