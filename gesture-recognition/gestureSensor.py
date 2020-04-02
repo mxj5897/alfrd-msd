@@ -27,8 +27,9 @@ sensor_logger.addHandler(file_handler)
 
 
 class Sensors():
-    video = None
-    method = "unkonwn"
+    def __init__(self):
+        self.video = None
+        self.method = "unkonwn"
 
     def get_method(self):
         # Checks to determine what sensor are availble. Returns a string listing the appropriate option
@@ -41,11 +42,12 @@ class Sensors():
                 camera_video = self.get_camera_video()
                 if camera_video is not None:
                     return "camera"
+            return None
         except:
             sensor_logger.fatal('No available sensors detected, terminating application')
             return None
 
-    def switch_method(self, currentMethod):
+    def switch_method(self, currentMethod, switch=False):
         try:
             if currentMethod == 'kinect':
                 self.set_camera(0)

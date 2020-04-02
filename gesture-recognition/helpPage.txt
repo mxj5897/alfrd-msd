@@ -1,9 +1,0 @@
-Welcome to Alfrd: the Autonomous Gesture Recognition Robotic Assistant
-
-Setting Up
-
-Connecting Robot
-
-Interfacing with the GUI
-
-TroubleShooting
